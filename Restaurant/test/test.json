@@ -143,6 +143,29 @@
               },
               "renameOutput": true,
               "outputKey": "Audio"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.messages[0].type }}",
+                    "rightValue": "interactive"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Interacción"
             }
           ]
         },
@@ -346,7 +369,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  messaging_product: 'whatsapp',\n  recipient_type: 'individual',\n  to: $json.telefono,\n  type: 'interactive',\n  interactive: {\n    type: 'button',\n    body: {\n      text: $json.mensaje\n    },\n    action: {\n      buttons: [\n        {\n          type: 'reply',\n          reply: { id: 'VER_MENU', title: '🌮 Ver menú' }\n        },\n        {\n          type: 'reply',\n          reply: { id: 'HACER_PEDIDO', title: '🛵 Hacer pedido' }\n        }\n      ]\n    }\n  }\n}) }}",
+        "jsonBody": "={{ JSON.stringify({\n  messaging_product: 'whatsapp',\n  recipient_type: 'individual',\n  to: $json.telefono,\n  type: 'interactive',\n  interactive: {\n    type: 'button',\n    body: {\n      text: $json.mensaje\n    },\n    action: {\n      buttons: [\n        {\n          type: 'reply',\n          reply: { id: 'VER_CARTA', title: '📖 Ver carta' }\n        },\n        {\n          type: 'reply',\n          reply: { id: 'HACER_PEDIDO', title: '🛵 Hacer pedido' }\n        }\n      ]\n    }\n  }\n}) }}",
         "options": {}
       },
       "id": "aac5b66d-1dd4-4d78-a054-319c745626f3",
@@ -363,6 +386,144 @@
           "name": "WhatsApp account"
         }
       }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v21.0/' + $json.phoneNumberId + '/messages' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "whatsAppApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  messaging_product: 'whatsapp',\n  recipient_type: 'individual',\n  to: $json.telefono,\n  type: 'text',\n  text: {\n    body: $json.mensaje,\n    preview_url: true\n  }\n}) }}",
+        "options": {}
+      },
+      "id": "4c91a865-672b-4865-b52f-3f5e27698b7d",
+      "name": "HTTP - Enviar Carta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -96,
+        464
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "Ur6ZELwtVtxItVPE",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "scarta4",
+              "name": "telefono",
+              "type": "string",
+              "value": "={{ $json.telefono }}"
+            },
+            {
+              "id": "scarta5",
+              "name": "phoneNumberId",
+              "type": "string",
+              "value": "={{ $json.phoneNumberId }}"
+            },
+            {
+              "id": "scarta6",
+              "name": "mensaje",
+              "type": "string",
+              "value": "={{ 'Aquí tienes nuestra carta completa: https://wa.me/p/29826327967012417/51921127939' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "567ea4aa-51f0-4ea8-b9cd-744328fe286a",
+      "name": "Set - Mensaje Carta",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -352,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "d3a6f6f6-7b0a-4b0c-9f8f-31b263a85a4f",
+              "leftValue": "={{ $json.botonSeleccionado }}",
+              "rightValue": "VER_CARTA",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "bb7206d2-9f55-43b5-b9ba-879ebf9d0e87",
+      "name": "If - Botón Carta?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -608,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "scarta1",
+              "name": "telefono",
+              "type": "string",
+              "value": "={{ $json.messages[0].from }}"
+            },
+            {
+              "id": "scarta2",
+              "name": "phoneNumberId",
+              "type": "string",
+              "value": "={{ $json.metadata && $json.metadata.phone_number_id ? $json.metadata.phone_number_id : '' }}"
+            },
+            {
+              "id": "scarta3",
+              "name": "botonSeleccionado",
+              "type": "string",
+              "value": "={{ $json.messages[0].interactive && $json.messages[0].interactive.button_reply && $json.messages[0].interactive.button_reply.id ? $json.messages[0].interactive.button_reply.id : '' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d995a05a-8d5a-4ece-8f81-7637c0238b6f",
+      "name": "Set - Datos Carta",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -864,
+        464
+      ]
     },
     {
       "parameters": {
@@ -441,6 +602,15 @@
         [
           {
             "node": "Set - Datos Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [],
+        [],
+        [
+          {
+            "node": "Set - Datos Carta",
             "type": "main",
             "index": 0
           }
@@ -526,6 +696,40 @@
           {
             "node": "AI Agent",
             "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Datos Carta": {
+      "main": [
+        [
+          {
+            "node": "If - Botón Carta?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - Botón Carta?": {
+      "main": [
+        [
+          {
+            "node": "Set - Mensaje Carta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Set - Mensaje Carta": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Enviar Carta",
+            "type": "main",
             "index": 0
           }
         ]

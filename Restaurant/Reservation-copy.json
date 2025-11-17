@@ -143,6 +143,52 @@
               },
               "renameOutput": true,
               "outputKey": "Audio"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.messages[0].type }}",
+                    "rightValue": "interactive"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Interactivo"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.messages[0].type }}",
+                    "rightValue": "image"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Imagen"
             }
           ]
         },
@@ -421,6 +467,618 @@
           "name": "Postgres account"
         }
       }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "btn1",
+              "name": "telefono",
+              "type": "string",
+              "value": "={{ $json.messages[0].from }}"
+            },
+            {
+              "id": "btn2",
+              "name": "phoneNumberId",
+              "type": "string",
+              "value": "={{ $json.metadata.phone_number_id }}"
+            },
+            {
+              "id": "btn3",
+              "name": "buttonId",
+              "type": "string",
+              "value": "={{ $json.messages[0].interactive.button_reply.id }}"
+            },
+            {
+              "id": "btn4",
+              "name": "buttonTitle",
+              "type": "string",
+              "value": "={{ $json.messages[0].interactive.button_reply.title }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "SET-BOTON-ID-AQUI",
+      "name": "Set - Datos Botón WhatsApp",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -832,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.buttonId }}",
+                    "rightValue": "VER_MENU"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "VerMenú"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.buttonId }}",
+                    "rightValue": "HACER_PEDIDO"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "HacerPedido"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.buttonId }}",
+                    "rightValue": "PEDIDO_RECOJO"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "RecojoTienda"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.buttonId }}",
+                    "rightValue": "PEDIDO_DELIVERY"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Delivery"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "SWITCH-BOTON-RUTA-ID",
+      "name": "Switch - Ruta Botón",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -544,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "m1",
+              "name": "telefono",
+              "type": "string",
+              "value": "={{ $json.telefono }}"
+            },
+            {
+              "id": "m2",
+              "name": "phoneNumberId",
+              "type": "string",
+              "value": "={{ $json.phoneNumberId }}"
+            },
+            {
+              "id": "m3",
+              "name": "mensaje",
+              "type": "string",
+              "value": "={{ '📋 *Menú Tacomiendo (ejemplo)*\\n\\n*1) TACO_PASTOR* – Taco al pastor con piña, cebolla y cilantro. S/ 8.50\\n*2) TACO_SUADERO* – Taco de suadero bien dorado. S/ 8.50\\n*3) COMBO_3_TACOS* – 3 tacos a elección + bebida. S/ 25.00\\n\\n📝 Para pedir, escribe por ejemplo:\\n2x TACO_PASTOR\\n1x COMBO_3_TACOS' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "SET-MENU-ID",
+      "name": "Set - Mensaje Menú",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -256,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v21.0/' + $json.phoneNumberId + '/messages' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "whatsAppApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  messaging_product: 'whatsapp',\n  to: $json.telefono,\n  type: 'text',\n  text: { body: $json.mensaje }\n}) }}"
+      },
+      "id": "HTTP-MENU-ID",
+      "name": "HTTP - Enviar Menú",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        16,
+        400
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "Ur6ZELwtVtxItVPE",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v21.0/' + $json.phoneNumberId + '/messages' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "whatsAppApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  messaging_product: 'whatsapp',\n  to: $json.telefono,\n  type: 'interactive',\n  interactive: {\n    type: 'button',\n    body: {\n      text: '¿Cómo prefieres tu pedido?'\n    },\n    action: {\n      buttons: [\n        { type: 'reply', reply: { id: 'PEDIDO_RECOJO', title: '🏪 Recojo en tienda' } },\n        { type: 'reply', reply: { id: 'PEDIDO_DELIVERY', title: '🛵 Delivery' } }\n      ]\n    }\n  }\n}) }}"
+      },
+      "id": "HTTP-TIPO-ENTREGA-ID",
+      "name": "HTTP - Preguntar Tipo Entrega",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -256,
+        480
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "Ur6ZELwtVtxItVPE",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id AS cliente_id FROM clientes WHERE telefono = $1;",
+        "options": {
+          "queryBatching": "independently",
+          "queryReplacement": "={{ [ $json.telefono ] }}"
+        }
+      },
+      "id": "DB-GET-CLIENTE-ID",
+      "name": "DB - Obtener Cliente",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -256,
+        560
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "EuEbLjm0Yx9snHhs",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO pedidos (cliente_id, tipo_entrega, estado)\nVALUES ($1, $2, $3)\nRETURNING id;",
+        "options": {
+          "queryBatching": "independently",
+          "queryReplacement": "={{ [ $json.cliente_id || $json[0].cliente_id || null, $json.tipo_entrega, $json.estado ] }}"
+        }
+      },
+      "id": "DB-CREAR-PEDIDO-ID",
+      "name": "DB - Crear Pedido",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        560
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "EuEbLjm0Yx9snHhs",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "tp1",
+              "name": "tipo_entrega",
+              "type": "string",
+              "value": "recojo"
+            },
+            {
+              "id": "tp2",
+              "name": "estado",
+              "type": "string",
+              "value": "PENDIENTE_PEDIDO_RECOJO"
+            }
+          ]
+        }
+      },
+      "id": "SET-TIPO-RECOJO-ID",
+      "name": "Set - Tipo Recojo",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -32,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "tp1",
+              "name": "tipo_entrega",
+              "type": "string",
+              "value": "delivery"
+            },
+            {
+              "id": "tp2",
+              "name": "estado",
+              "type": "string",
+              "value": "PENDIENTE_PEDIDO_DELIVERY"
+            }
+          ]
+        }
+      },
+      "id": "SET-TIPO-DELIVERY-ID",
+      "name": "Set - Tipo Delivery",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -32,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\n// Menú de ejemplo con 3 productos\nconst menu = [\n  { code: 'TACO_PASTOR', nombre: 'Taco al pastor', precio: 8.5 },\n  { code: 'TACO_SUADERO', nombre: 'Taco de suadero', precio: 8.5 },\n  { code: 'COMBO_3_TACOS', nombre: 'Combo 3 tacos + bebida', precio: 25.0 }\n];\n\nconst texto = (item.textoPedido || '').trim();\nif (!texto) {\n  throw new Error('El pedido está vacío.');\n}\n\nconst lineas = texto.split(/\\r?\\n/).map(l => l.trim()).filter(Boolean);\n\nconst articulos = [];\nlet total = 0;\n\nfor (const linea of lineas) {\n  const match = linea.match(/^(\\d+)x?\\s+(.+)$/i);\n  if (!match) {\n    throw new Error(`Formato inválido en la línea: \"${linea}\". Usa por ejemplo: 2x TACO_PASTOR`);\n  }\n  const cantidad = parseInt(match[1], 10);\n  const code = match[2].trim().toUpperCase();\n\n  const producto = menu.find(m => m.code === code);\n  if (!producto) {\n    throw new Error(`No se encontró el producto con código: ${code}`);\n  }\n\n  const subtotal = cantidad * producto.precio;\n  articulos.push({\n    code: producto.code,\n    nombre: producto.nombre,\n    cantidad,\n    precio_unitario: producto.precio,\n    subtotal\n  });\n  total += subtotal;\n}\n\nitem.articulosValidados = articulos;\nitem.total = Number(total.toFixed(2));\n\n// Generar resumen en texto para usar en WhatsApp\nconst lineasResumen = articulos.map(a => `${a.cantidad}x ${a.nombre} (S/ ${a.precio_unitario.toFixed(2)}) = S/ ${a.subtotal.toFixed(2)}`);\nitem.resumenPedido = `Resumen de tu pedido:\\n\\n` + lineasResumen.join('\\n') + `\\n\\nTotal: *S/ ${item.total.toFixed(2)}*`;\n\nreturn $input.all();"
+      },
+      "id": "CODE-VALIDAR-PEDIDO-ID",
+      "name": "Code - Validar Pedido",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        256,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE pedidos\nSET articulos = $2::jsonb,\n    total = $3,\n    estado = $4,\n    actualizado_en = now()\nWHERE id = $1\nRETURNING id;",
+        "options": {
+          "queryBatching": "independently",
+          "queryReplacement": "={{ [ $json.pedido_id, JSON.stringify($json.articulosValidados), $json.total, $json.nuevo_estado ] }}"
+        }
+      },
+      "id": "DB-ACTUALIZAR-PEDIDO-DETALLE-ID",
+      "name": "DB - Actualizar Pedido Detalle",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        512,
+        640
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "EuEbLjm0Yx9snHhs",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v21.0/' + $json.phoneNumberId + '/messages' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "whatsAppApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  messaging_product: 'whatsapp',\n  to: $json.telefono,\n  type: 'text',\n  text: {\n    body: $json.resumenPedido + '\\n\\n💳 El pago se realiza al recoger tu pedido en tienda con nuestro personal.'\n  }\n}) }}"
+      },
+      "id": "HTTP-CONFIRMAR-RECOJO-ID",
+      "name": "HTTP - Confirmar Pedido Recojo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        768,
+        640
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "Ur6ZELwtVtxItVPE",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v21.0/' + $json.phoneNumberId + '/messages' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "whatsAppApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  messaging_product: 'whatsapp',\n  to: $json.telefono,\n  type: 'text',\n  text: {\n    body: $json.resumenPedido + '\\n\\nAhora necesitamos tus datos:\\n\\n1️⃣ Responde este mensaje con:\\n- Tu nombre completo\\n- Referencia de entrega\\n\\n2️⃣ Luego toca el icono de clip 📎 en WhatsApp, selecciona *Ubicación* y pulsa *Ubicación actual* para enviarla.\\n\\n3️⃣ Por último, paga el total por *Yape/Plin* al número ' + $node[\"Configuración - Global\"].json.telefonoPedidos + ' y envía la *captura completa* del pago.'\n  }\n}) }}"
+      },
+      "id": "HTTP-INSTRUCCIONES-DELIVERY-ID",
+      "name": "HTTP - Instrucciones Delivery",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        768,
+        720
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "Ur6ZELwtVtxItVPE",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id AS pedido_id FROM pedidos p JOIN clientes c ON c.id = p.cliente_id WHERE c.telefono = $1 AND p.estado = 'PENDIENTE_UBICACION' ORDER BY p.creado_en DESC LIMIT 1;",
+        "options": {
+          "queryBatching": "independently",
+          "queryReplacement": "={{[ $json.messages[0].from ]}}"
+        }
+      },
+      "id": "DB-GET-PENDING-LOCATION-ID",
+      "name": "DB - Obtener Pedido Activo Ubicación",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -832,
+        240
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "EuEbLjm0Yx9snHhs",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE pedidos\nSET ubicacion = jsonb_build_object(\n      'lat', $2,\n      'lng', $3\n    ),\n    estado = 'PENDIENTE_PAGO',\n    actualizado_en = now()\nWHERE id = $1;",
+        "options": {
+          "queryBatching": "independently",
+          "queryReplacement": "={{ [ $json.pedido_id, $json.messages[0].location.latitude, $json.messages[0].location.longitude ] }}"
+        }
+      },
+      "id": "DB-UPDATE-LOCATION-ID",
+      "name": "DB - Actualizar Ubicación Pedido",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -544,
+        240
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "EuEbLjm0Yx9snHhs",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "img1",
+              "name": "telefono",
+              "type": "string",
+              "value": "={{ $json.messages[0].from }}"
+            },
+            {
+              "id": "img2",
+              "name": "phoneNumberId",
+              "type": "string",
+              "value": "={{ $json.metadata.phone_number_id }}"
+            },
+            {
+              "id": "img3",
+              "name": "media_id",
+              "type": "string",
+              "value": "={{ $json.messages[0].image.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "SET-DATOS-IMAGEN-PAGO-ID",
+      "name": "Set - Datos Imagen Pago",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -832,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH p AS (\n  SELECT p.id, p.articulos, p.total, p.tipo_entrega, p.ubicacion, c.telefono, c.nombre\n  FROM pedidos p\n  JOIN clientes c ON c.id = p.cliente_id\n  WHERE c.telefono = $1 AND p.estado = 'PENDIENTE_PAGO'\n  ORDER BY p.creado_en DESC\n  LIMIT 1\n)\nUPDATE pedidos\nSET comprobante_media_id = $2,\n    estado = 'COMPLETO',\n    actualizado_en = now()\nFROM p\nWHERE pedidos.id = p.id\nRETURNING p.id, p.articulos, p.total, p.tipo_entrega, p.ubicacion, p.telefono, p.nombre, $2 as comprobante_media_id;",
+        "options": {
+          "queryBatching": "independently",
+          "queryReplacement": "={{ [ $json.telefono, $json.media_id ] }}"
+        }
+      },
+      "id": "DB-GUARDAR-COMPROBANTE-ID",
+      "name": "DB - Guardar Comprobante y Obtener Pedido",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -544,
+        720
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "EuEbLjm0Yx9snHhs",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst articulos = item.articulos || [];\nconst lineas = articulos.map(a => `${a.cantidad}x ${a.nombre}`);\n\nlet ubicacionTexto = 'Sin ubicación (Pedido para recojo)';\nif (item.ubicacion && item.ubicacion.lat && item.ubicacion.lng) {\n  const url = `https://www.google.com/maps?q=${item.ubicacion.lat},${item.ubicacion.lng}`;\n  ubicacionTexto = `Ubicación: ${url}`;\n}\n\nitem.resumenStaff = `*Nuevo pedido ${item.tipo_entrega?.toUpperCase() || ''} (#${item.id})*\\n\\nCliente: ${item.nombre || ''} (${item.telefono})\\n\\n` +\n  lineas.join('\\n') +\n  `\\n\\nTotal: S/ ${Number(item.total || 0).toFixed(2)}\\n` +\n  ubicacionTexto +\n  `\\n\\nSe adjunta la captura del pago.`;\n\nreturn $input.all();"
+      },
+      "id": "CODE-RESUMEN-STAFF-ID",
+      "name": "Code - Resumen Staff",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -256,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v21.0/' + $json.phoneNumberId + '/messages' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "whatsAppApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  messaging_product: 'whatsapp',\n  to: $node[\"Configuración - Global\"].json.telefonoPedidos,\n  type: 'image',\n  image: {\n    id: $json.comprobante_media_id,\n    caption: $json.resumenStaff\n  }\n}) }}"
+      },
+      "id": "HTTP-RESUMEN-STAFF-ID",
+      "name": "HTTP - Enviar Resumen Staff",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        16,
+        720
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "Ur6ZELwtVtxItVPE",
+          "name": "WhatsApp account"
+        }
+      }
     }
   ],
   "pinData": {},
@@ -441,6 +1099,28 @@
         [
           {
             "node": "Set - Datos Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "DB - Obtener Pedido Activo Ubicación",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [],
+        [
+          {
+            "node": "Set - Datos Botón WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set - Datos Imagen Pago",
             "type": "main",
             "index": 0
           }
@@ -526,6 +1206,137 @@
           {
             "node": "AI Agent",
             "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Datos Botón WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Switch - Ruta Botón",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - Ruta Botón": {
+      "main": [
+        [
+          {
+            "node": "Set - Mensaje Menú",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP - Preguntar Tipo Entrega",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set - Tipo Recojo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set - Tipo Delivery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Mensaje Menú": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Enviar Menú",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Tipo Recojo": {
+      "main": [
+        [
+          {
+            "node": "DB - Obtener Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Tipo Delivery": {
+      "main": [
+        [
+          {
+            "node": "DB - Obtener Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Obtener Cliente": {
+      "main": [
+        [
+          {
+            "node": "DB - Crear Pedido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Datos Imagen Pago": {
+      "main": [
+        [
+          {
+            "node": "DB - Guardar Comprobante y Obtener Pedido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Guardar Comprobante y Obtener Pedido": {
+      "main": [
+        [
+          {
+            "node": "Code - Resumen Staff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Resumen Staff": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Enviar Resumen Staff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Obtener Pedido Activo Ubicación": {
+      "main": [
+        [
+          {
+            "node": "DB - Actualizar Ubicación Pedido",
+            "type": "main",
             "index": 0
           }
         ]
