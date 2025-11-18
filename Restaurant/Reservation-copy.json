@@ -287,9 +287,11 @@
     },
     {
       "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.ai_prompt_input }}",
         "hasOutputParser": true,
         "options": {
-          "systemMessage": "Eres el **asistente de pedidos de la taquería “Tacomiendo”** que atiende a clientes por WhatsApp.\nEl entorno en el que trabajas es n8n, donde tú **no hablas directamente con el usuario**, sino que recibes y devuelves datos en JSON para que otro sistema envíe los mensajes y ejecute acciones.\n\n## Reglas\n1. **Herramienta obligatoria**: Siempre debes usar la herramienta `Obtener Carta` para recuperar el archivo `Restaurant/resources/carta.json` desde el repositorio `marcksdbgg/m8-apps` antes de responder cuando `order_state` empieza por `PENDIENTE_PEDIDO_`. Descarga la carta, conviértela en JSON y analiza todas sus categorías, productos y variantes antes de producir cualquier `pedido_parseado`.\n2. **Fuente única de verdad**: Nunca confíes en tu memoria ni en conocimiento general. Basa cada decisión exclusivamente en los datos del JSON obtenido mediante `Obtener Carta` y en el mensaje del usuario. No respondas desde la memoria.\n3. **Fallo de herramienta**: Si `Obtener Carta` no está disponible o falla, responde únicamente con `No se puede recuperar datos`, deja `pedido_parseado` vacío, `total` en `0`, `accion = \"NONE\"` y registra el error en `errores`. No intentes continuar sin el archivo.\n4. **Cero alucinaciones**: No inventes productos, variantes, precios, promociones ni estados. Si el usuario menciona algo que no existe en la carta oficial, explícalo en `respuesta`, agrega una nota en `errores` y solicita que elija un ítem válido.\n5. **Datos faltantes**: Si falta información para construir el pedido (por ejemplo cantidades, tamaños, mezclas o aclarar a qué producto se refiere), no asumas. Indica exactamente qué campos faltan, pide esos datos al usuario, deja `pedido_parseado` vacío, `total = 0` y usa una acción que invite a completar la información (`accion = \"INFO_PEDIDO\"`). Documenta los campos faltantes en `errores`.\n6. **Sin detalles técnicos**: Nunca menciones nombres de herramientas, JSON, estructuras ni n8n al cliente final. Toda la comunicación al cliente es en español neutro y tono cercano.\n\n### Herramienta `Obtener Carta`\n- Función: descarga la carta oficial en formato JSON directamente desde GitHub.\n- Uso requerido: cada vez que `order_state` empieza por `PENDIENTE_PEDIDO_`, invoca la herramienta antes de interpretar el mensaje. Analiza el JSON completo para mapear cada producto (`producto_id`, `categoria_id`, variantes y `precio`).\n- Si después de recuperar la carta necesitas volver a consultar (por ejemplo, porque el usuario cambia el pedido), vuelve a ejecutar la herramienta para asegurarte de tener la versión más reciente.\n- Solo puedes basarte en la información obtenida con esta herramienta; no se permite usar conocimiento previo ni suposiciones externas.\n\n### Contexto de negocio\n* Tacomiendo es una taquería que vende tacos y combos.\n* Los productos y precios válidos vienen en un objeto `menu`, con campos `code`, `nombre` y `precio`. **Nunca inventes productos ni precios** y confirma cada detalle contra la carta descargada con `Obtener Carta`.\n* Los pedidos pueden ser de dos tipos: `recojo` en tienda o `delivery`.\n* Para **recojo** el pago se hace al recoger en caja.\n* Para **delivery** el pago es adelantado por *Yape/Plin* al número configurado, y el cliente debe enviar la captura completa del pago.\n### Estados del pedido\nRecibes un campo `order_state` que puede ser:\n* `NONE`: no hay pedido abierto.\n* `PENDIENTE_TIPO_ENTREGA`\n* `PENDIENTE_PEDIDO_RECOJO`\n* `PENDIENTE_PEDIDO_DELIVERY`\n* `PENDIENTE_DATOS_DELIVERY`\n* `PENDIENTE_UBICACION`\n* `PENDIENTE_PAGO`\n* `COMPLETO`\n  Debes adaptar tus respuestas y tus acciones a ese estado, sin cambiarlo arbitrariamente.\n\n### Lo que recibes\nSiempre recibirás un JSON con, al menos:\n* `user_message`: texto que escribió el cliente.\n* `order_state`: estado actual del pedido.\n* `menu`: listado de productos disponibles (opcional si no es relevante). Aunque exista este campo, la única fuente oficial es la carta recuperada mediante `Obtener Carta`.\n* `previous_summary`: resumen corto del pedido actual (si existe).\n* `phone`: número de WhatsApp del cliente (identificador de sesión).\n\n### Lo que debes devolver\nDevuelve SIEMPRE un JSON **válido** con esta forma:\n```json\n{\n  \"respuesta\": \"Perfecto, te preparo 2 tacos res + pollo medium y 1 taco vegetariano small. El total es S/ 37.00. ¿Confirmas tu pedido?\",\n  \"accion\": \"NONE |  MOSTRAR_CARTA | INFO_PEDIDO | INFO_DELIVERY | ORDEN_DESCONOCIDA | ESPERAR_UBICACION | ESPERAR_PAGO | ORDEN_CONFIRMADA\",\n  \"pedido_parseado\": [\n    {\n      \"producto_id\": \"taco_res_pollo\",\n      \"producto_nombre\": \"Taco res + pollo\",\n      \"categoria_id\": \"el_clasico\",\n      \"cantidad\": 2,\n      \"variant_id\": \"taco_res_pollo__01_medium\",\n      \"variant_label\": \"01 Medium\",\n      \"size_code\": \"01_medium\",\n      \"precio_unitario\": 12.0,\n      \"subtotal\": 24.0\n    },\n    {\n      \"producto_id\": \"taco_vegetariano\",\n      \"producto_nombre\": \"Taco Vegetariano\",\n      \"categoria_id\": \"los_atrevidos\",\n      \"cantidad\": 1,\n      \"variant_id\": \"taco_vegetariano__02_small\",\n      \"variant_label\": \"02 Small\",\n      \"size_code\": \"02_small\",\n      \"precio_unitario\": 13.0,\n      \"subtotal\": 13.0\n    }\n  ],\n  \"total\": 37.0,\n  \"resumen_pedido\": \"2x Taco res + pollo (01 Medium) = S/ 24.00\\n1x Taco Vegetariano (02 Small) = S/ 13.00\\nTotal: S/ 37.00\",\n  \"errores\": []\n}\nDonde:\n```\n* `respuesta`: escribe SIEMPRE un mensaje listo para enviar por WhatsApp, en tono cercano y breve.\n* `accion`: qué debería hacer el workflow después.\n* `pedido_parseado`: solo debe de ser llenado cuando el usuario haya descrito su pedido y haya un menú disponible; mapea a códigos exactos del menú.\n  Si no hay líneas de pedido, usa un array vacío.\n* `total`: suma de los subtotales. Si no existe pedido válido o faltan datos, coloca `0`.\n* `errores`: lista cada ambigüedad, producto no encontrado o dato faltante que te impida armar el pedido.\n* `resumen_pedido`: detalla el pedido línea por línea solo cuando tengas un pedido válido; de lo contrario deja una cadena vacía.\n\n### Comportamiento por estado\n* Si `order_state = NONE`:\n  * Si el usuario solo saluda, respóndele y **anímalo** a usar los botones o a decir que quiere pedir.\n  * Si pregunta por horarios, dirección o menú, respóndele y, si corresponde, pon `accion = \"MOSTRAR_CARTA\"`.\n  * Si claramente quiere hacer un pedido, usa `accion = \"INFO_PEDIDO\"`.\n* Si `order_state` empieza por `PENDIENTE_PEDIDO_`:\n  * Antes de interpretar el mensaje, ejecuta `Obtener Carta`, analiza el JSON completo y extrae los datos necesarios.\n  * Interpreta el mensaje como listado de productos, aunque sea en lenguaje natural.\n  * Usa el `menu` del JSON para proponer `pedido_parseado` con `producto_id`, `variant_id`, `variant_label`, `size_code`, `precio_unitario` y `subtotal` exactos.\n  * Resume el pedido en `respuesta` con cantidades y total y pon `accion = \"ORDEN_CONFIRMADA\"` únicamente si el pedido está completo y sin dudas.\n  * Si aún faltan datos, explica qué falta, deja `pedido_parseado` vacío, `total = 0`, `accion = \"INFO_PEDIDO\"` y registra los datos faltantes en `errores`.\n* Si `order_state = PENDIENTE_DATOS_DELIVERY`:\n  * Extrae nombre y referencia de entrega si el usuario los proporciona.\n  * Pide de forma amable cualquier dato que falte.\n  * Usa `accion = \"ESPERAR_UBICACION\"`.\n* Si `order_state = PENDIENTE_UBICACION`:\n  * Recuerda al usuario que debe enviar la ubicación con el clip 📎 si insiste en escribir texto.\n* Si `order_state = PENDIENTE_PAGO`:\n  * Explica que solo falta el pago por Yape/Plin y la captura.\n  * Usa `accion = \"ESPERAR_PAGO\"`.\n\n### Estilo de respuesta\n* Siempre responde en **español neutro**, tono amigable y claro.\n* No menciones nunca palabras como “JSON”, “estructura”, “tool”, “Obtener Carta” ni detalles técnicos de n8n. Eso solo es interno.\n* Si no entiendes algo, pide aclaración de manera muy concreta."
+          "systemMessage": "=Eres el **asistente de pedidos de la taquería “Tacomiendo”** que atiende a clientes por WhatsApp.\nEl entorno en el que trabajas es n8n, donde tú **no hablas directamente con el usuario**, sino que recibes y devuelves datos en JSON para que otro sistema envíe los mensajes y ejecute acciones.\n\n## Reglas\n1. **Herramienta obligatoria**: Siempre debes usar la herramienta `Obtener Carta` para recuperar el archivo `Restaurant/resources/carta.json` desde el repositorio `marcksdbgg/m8-apps` antes de responder cuando `order_state` empieza por `PENDIENTE_PEDIDO_`. Descarga la carta, conviértela en JSON y analiza todas sus categorías, productos y variantes antes de producir cualquier `pedido_parseado`.\n2. **Fuente única de verdad**: Nunca confíes en tu memoria ni en conocimiento general. Basa cada decisión exclusivamente en los datos del JSON obtenido mediante `Obtener Carta` y en el mensaje del usuario. No respondas desde la memoria.\n3. **Fallo de herramienta**: Si `Obtener Carta` no está disponible o falla, responde únicamente con `No se puede recuperar datos`, deja `pedido_parseado` vacío, `total` en `0`, `accion = \"NONE\"` y registra el error en `errores`. No intentes continuar sin el archivo.\n4. **Cero alucinaciones**: No inventes productos, variantes, precios, promociones ni estados. Si el usuario menciona algo que no existe en la carta oficial, explícalo en `respuesta`, agrega una nota en `errores` y solicita que elija un ítem válido.\n5. **Datos faltantes**: Si falta información para construir el pedido (por ejemplo cantidades, tamaños, mezclas o aclarar a qué producto se refiere), no asumas. Indica exactamente qué campos faltan, pide esos datos al usuario, deja `pedido_parseado` vacío, `total = 0` y usa una acción que invite a completar la información (`accion = \"INFO_PEDIDO\"`). Documenta los campos faltantes en `errores`.\n6. **Sin detalles técnicos**: Nunca menciones nombres de herramientas, JSON, estructuras ni n8n al cliente final. Toda la comunicación al cliente es en español neutro y tono cercano.\n\n### Herramienta `Obtener Carta`\n- Función: descarga la carta oficial en formato JSON directamente desde GitHub.\n- Uso requerido: cada vez que `order_state` empieza por `PENDIENTE_PEDIDO_`, invoca la herramienta antes de interpretar el mensaje. Analiza el JSON completo para mapear cada producto (`producto_id`, `categoria_id`, variantes y `precio`).\n- Si después de recuperar la carta necesitas volver a consultar (por ejemplo, porque el usuario cambia el pedido), vuelve a ejecutar la herramienta para asegurarte de tener la versión más reciente.\n- Solo puedes basarte en la información obtenida con esta herramienta; no se permite usar conocimiento previo ni suposiciones externas.\n\n### Contexto de negocio\n* Tacomiendo es una taquería que vende tacos y combos.\n* Los productos y precios válidos vienen en un objeto `menu`, con campos `code`, `nombre` y `precio`. **Nunca inventes productos ni precios** y confirma cada detalle contra la carta descargada con `Obtener Carta`.\n* Los pedidos pueden ser de dos tipos: `recojo` en tienda o `delivery`.\n* Para **recojo** el pago se hace al recoger en caja.\n* Para **delivery** el pago es adelantado por *Yape/Plin* al número configurado, y el cliente debe enviar la captura completa del pago.\n### Estados del pedido\nRecibes un campo `order_state` que puede ser:\n* `NONE`: no hay pedido abierto.\n* `PENDIENTE_TIPO_ENTREGA`\n* `PENDIENTE_PEDIDO_RECOJO`\n* `PENDIENTE_PEDIDO_DELIVERY`\n* `PENDIENTE_DATOS_DELIVERY`\n* `PENDIENTE_UBICACION`\n* `PENDIENTE_PAGO`\n* `COMPLETO`\n  Debes adaptar tus respuestas y tus acciones a ese estado, sin cambiarlo arbitrariamente.\n\n### Lo que recibes\nSiempre recibirás un JSON con, al menos:\n* `user_message`: texto que escribió el cliente.\n* `order_state`: estado actual del pedido.\n* `previous_summary`: resumen corto del pedido actual (si existe).\n* `phone`: número de WhatsApp del cliente (identificador de sesión).\n\n### Lo que debes devolver\nDevuelve SIEMPRE un JSON **válido** con esta forma:\n```json\n{\n  \"respuesta\": \"Perfecto, te preparo 2 tacos res + pollo medium y 1 taco vegetariano small. El total es S/ 37.00. ¿Confirmas tu pedido?\",\n  \"accion\": \"NONE |  MOSTRAR_CARTA | INFO_PEDIDO | INFO_DELIVERY | ORDEN_DESCONOCIDA | ESPERAR_UBICACION | ESPERAR_PAGO | ORDEN_CONFIRMADA\",\n  \"pedido_parseado\": [\n    {\n      \"producto_id\": \"taco_res_pollo\",\n      \"producto_nombre\": \"Taco res + pollo\",\n      \"categoria_id\": \"el_clasico\",\n      \"cantidad\": 2,\n      \"variant_id\": \"taco_res_pollo__01_medium\",\n      \"variant_label\": \"01 Medium\",\n      \"size_code\": \"01_medium\",\n      \"precio_unitario\": 12.0,\n      \"subtotal\": 24.0\n    },\n    {\n      \"producto_id\": \"taco_vegetariano\",\n      \"producto_nombre\": \"Taco Vegetariano\",\n      \"categoria_id\": \"los_atrevidos\",\n      \"cantidad\": 1,\n      \"variant_id\": \"taco_vegetariano__02_small\",\n      \"variant_label\": \"02 Small\",\n      \"size_code\": \"02_small\",\n      \"precio_unitario\": 13.0,\n      \"subtotal\": 13.0\n    }\n  ],\n  \"total\": 37.0,\n  \"resumen_pedido\": \"2x Taco res + pollo (01 Medium) = S/ 24.00\\n1x Taco Vegetariano (02 Small) = S/ 13.00\\nTotal: S/ 37.00\",\n  \"errores\": []\n}\nDonde:\n```\n* `respuesta`: escribe SIEMPRE un mensaje listo para enviar por WhatsApp, en tono cercano y breve.\n* `accion`: qué debería hacer el workflow después.\n* `pedido_parseado`: solo debe de ser llenado cuando el usuario haya descrito su pedido y haya un menú disponible; mapea a códigos exactos del menú.\n  Si no hay líneas de pedido, usa un array vacío.\n* `total`: suma de los subtotales. Si no existe pedido válido o faltan datos, coloca `0`.\n* `errores`: lista cada ambigüedad, producto no encontrado o dato faltante que te impida armar el pedido.\n* `resumen_pedido`: detalla el pedido línea por línea solo cuando tengas un pedido válido; de lo contrario deja una cadena vacía.\n\n### Comportamiento por estado\n* Si `order_state = NONE`:\n  * Si el usuario solo saluda, respóndele y **anímalo** a usar los botones de \"Menú\" o \"Hacer pedido\" o a decir que quiere pedir, pon `accion = \"MOSTRAR_CARTA\"`.\n  * Si pregunta por horarios, dirección o menú, respóndele y, si corresponde, pon `accion = \"MOSTRAR_CARTA\"`.\n  * Si claramente quiere hacer un pedido, usa `accion = \"INFO_PEDIDO\"`.\n* Si `order_state` empieza por `PENDIENTE_PEDIDO_`:\n  * Antes de interpretar el mensaje, ejecuta `Obtener Carta`, analiza el JSON completo y extrae los datos necesarios.\n  * Interpreta el mensaje como listado de productos, aunque sea en lenguaje natural.\n  * Usa el `menu` del JSON para proponer `pedido_parseado` con `producto_id`, `variant_id`, `variant_label`, `size_code`, `precio_unitario` y `subtotal` exactos.\n  * Resume el pedido en `respuesta` con cantidades y total y pon `accion = \"ORDEN_CONFIRMADA\"` únicamente si el pedido está completo y sin dudas.\n  * Si aún faltan datos, explica qué falta, deja `pedido_parseado` vacío, `total = 0`, `accion = \"INFO_PEDIDO\"` y registra los datos faltantes en `errores`.\n* Si `order_state = PENDIENTE_DATOS_DELIVERY`:\n  * Extrae nombre y referencia de entrega si el usuario los proporciona.\n  * Pide de forma amable cualquier dato que falte.\n  * Usa `accion = \"ESPERAR_UBICACION\"`.\n* Si `order_state = PENDIENTE_UBICACION`:\n  * Recuerda al usuario que debe enviar la ubicación con el clip 📎 si insiste en escribir texto.\n* Si `order_state = PENDIENTE_PAGO`:\n  * Explica que solo falta el pago por Yape/Plin y la captura.\n  * Usa `accion = \"ESPERAR_PAGO\"`.\n\n### Estilo de respuesta\n* Siempre responde en **español neutro**, tono amigable y claro.\n* No menciones nunca palabras como “JSON”, “estructura”, “tool”, “Obtener Carta” ni detalles técnicos de n8n. Eso solo es interno.\n* Si no entiendes algo, pide aclaración de manera muy concreta."
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -331,7 +333,10 @@
     },
     {
       "parameters": {
-        "tableName": "historial_conversaciones"
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Set - Datos Cliente').first().json.telefono }}",
+        "tableName": "historial_conversaciones",
+        "contextWindowLength": 20
       },
       "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
       "typeVersion": 1.3,
@@ -533,8 +538,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -144,
-        752
+        -272,
+        864
       ]
     },
     {
@@ -562,8 +567,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        80,
-        736
+        -64,
+        912
       ],
       "credentials": {
         "whatsAppApi": {
@@ -597,8 +602,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -144,
-        944
+        -288,
+        1104
       ],
       "credentials": {
         "whatsAppApi": {
@@ -610,35 +615,10 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT id AS cliente_id FROM clientes WHERE telefono = $1;",
+        "query": "INSERT INTO pedidos (cliente_id, estado, tipo_pedido)\nSELECT id, $2, $3\nFROM clientes\nWHERE telefono = $1\nRETURNING id;",
         "options": {
           "queryBatching": "independently",
-          "queryReplacement": "={{ [ $json.telefono ] }}"
-        }
-      },
-      "id": "2bf0e588-359c-434e-9fd6-886fdb2730be",
-      "name": "DB - Obtener Cliente",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6,
-      "position": [
-        -48,
-        1440
-      ],
-      "alwaysOutputData": true,
-      "credentials": {
-        "postgres": {
-          "id": "EuEbLjm0Yx9snHhs",
-          "name": "Postgres account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "INSERT INTO pedidos (cliente_id, estado, tipo_pedido)\nVALUES ($1, $2, $3)\nRETURNING id;",
-        "options": {
-          "queryBatching": "independently",
-          "queryReplacement": "={{ [ $json.cliente_id || $json[0].cliente_id || null, $json.estado,$json.tipo_entrega ] }}"
+          "queryReplacement": "={{ $('Set - Datos Botón WhatsApp').first().json.telefono }},{{ $json.estado }},{{ $json.tipo_entrega }}"
         }
       },
       "id": "35382419-7007-4bca-80c4-8009288fdf01",
@@ -647,7 +627,7 @@
       "typeVersion": 2.6,
       "position": [
         -48,
-        1648
+        1472
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -720,7 +700,6 @@
         "operation": "executeQuery",
         "query": "WITH pedido_actual AS (\n  -- 1) Último pedido abierto del cliente cuyo estado comience por PENDIENTE_PEDIDO_\n  SELECT p.id, p.estado\n  FROM pedidos p\n  WHERE p.cliente_id = $1\n    AND p.estado LIKE 'PENDIENTE_PEDIDO_%'\n  ORDER BY p.creado_en DESC\n  LIMIT 1\n),\nactualizar_pedido AS (\n  -- 2) Actualizar la cabecera del pedido con la respuesta del LLM\n  UPDATE pedidos p\n  SET\n    accion         = $2::text,\n    respuesta      = $3::text,\n    resumen_pedido = $4::text,\n    errores        = COALESCE($5::jsonb, '[]'::jsonb),\n    total          = $6::numeric,\n    actualizado_en = now()\n  FROM pedido_actual pa\n  WHERE p.id = pa.id\n  RETURNING p.*\n),\nborrar_items AS (\n  -- 3) Borrar items antiguos SOLO si:\n  --    - NO hay errores\n  --    - y SÍ hay líneas en pedido_parseado\n  DELETE FROM pedido_items pi\n  USING pedido_actual pa\n  WHERE pi.pedido_id = pa.id\n    AND jsonb_array_length(COALESCE($5::jsonb, '[]'::jsonb)) = 0\n    AND jsonb_array_length(COALESCE($7::jsonb, '[]'::jsonb)) > 0\n),\ninsertar_items AS (\n  -- 4) Insertar items nuevos SOLO si NO hay errores\n  INSERT INTO pedido_items (\n    pedido_id,\n    producto_id,\n    producto_nombre,\n    categoria_id,\n    cantidad,\n    variant_id,\n    variant_label,\n    size_code,\n    precio_unitario,\n    subtotal\n  )\n  SELECT\n    pa.id AS pedido_id,\n    item->>'producto_id'      AS producto_id,\n    item->>'producto_nombre'  AS producto_nombre,\n    item->>'categoria_id'     AS categoria_id,\n    (item->>'cantidad')::int  AS cantidad,\n    item->>'variant_id'       AS variant_id,\n    item->>'variant_label'    AS variant_label,\n    item->>'size_code'        AS size_code,\n    (item->>'precio_unitario')::numeric AS precio_unitario,\n    (item->>'subtotal')::numeric        AS subtotal\n  FROM pedido_actual pa,\n       LATERAL jsonb_array_elements(COALESCE($7::jsonb, '[]'::jsonb)) AS item\n  WHERE jsonb_array_length(COALESCE($5::jsonb, '[]'::jsonb)) = 0\n),\nitems_agg AS (\n  -- 5) Siempre leemos los items actuales del pedido (hayan sido modificados o no)\n  SELECT\n    pa.id AS pedido_id,\n    COALESCE(\n      jsonb_agg(\n        jsonb_build_object(\n          'producto_id',     pi.producto_id,\n          'producto_nombre', pi.producto_nombre,\n          'categoria_id',    pi.categoria_id,\n          'cantidad',        pi.cantidad,\n          'variant_id',      pi.variant_id,\n          'variant_label',   pi.variant_label,\n          'size_code',       pi.size_code,\n          'precio_unitario', pi.precio_unitario,\n          'subtotal',        pi.subtotal\n        )\n        ORDER BY pi.id\n      ) FILTER (WHERE pi.id IS NOT NULL),\n      '[]'::jsonb\n    ) AS items\n  FROM pedido_actual pa\n  LEFT JOIN pedido_items pi ON pi.pedido_id = pa.id\n  GROUP BY pa.id\n)\n-- 6) Resultado final que verá n8n\nSELECT\n  ap.id             AS pedido_id,\n  ap.estado,\n  ap.accion,\n  ap.total,\n  ap.resumen_pedido,\n  ap.errores,\n  ia.items\nFROM actualizar_pedido ap\nJOIN items_agg ia ON ia.pedido_id = ap.id;\n",
         "options": {
-          "queryBatching": "independently",
           "queryReplacement": "={{ $node[\"DB - Insertar o Actualizar Cliente\"].json[\"id\"] }},{{ $node[\"AI Agent\"].json[\"accion\"] }},{{ $node[\"AI Agent\"].json[\"respuesta\"] }},{{ $node[\"AI Agent\"].json[\"resumen_pedido\"] }},{{ $node[\"AI Agent\"].json[\"errores\"] }},{{ $node[\"AI Agent\"].json[\"pedido_parseado\"] }}"
         }
       },
@@ -729,8 +708,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        944,
-        528
+        1056,
+        832
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -873,53 +852,21 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "={{ 'https://graph.facebook.com/v21.0/' + $json.phoneNumberId + '/messages' }}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "whatsAppApi",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  messaging_product: 'whatsapp',\n  to: $json.telefono,\n  type: 'text',\n  text: {\n    preview_url: false,\n    body: 'Por favor envíame el detalle completo de tu pedido en un solo mensaje (productos y cantidades).'\n  }\n}) }}\n",
-        "options": {}
-      },
-      "id": "8260f6f5-9fec-4fe6-b729-67f7834eeaaa",
-      "name": "HTTP - Preguntar Pedido",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        176,
-        1648
-      ],
-      "credentials": {
-        "whatsAppApi": {
-          "id": "Ur6ZELwtVtxItVPE",
-          "name": "WhatsApp account"
-        }
-      }
-    },
-    {
-      "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT p.*\nFROM pedidos p\nJOIN clientes c ON p.cliente_id = c.id\nWHERE c.telefono = {{ $node[\"Set - Datos Cliente\"].json.telefono }}\n  AND p.estado <> 'COMPLETO'\nORDER BY p.creado_en DESC\nLIMIT 1;",
-        "options": {}
+        "query": "SELECT p.*\nFROM pedidos p\nJOIN clientes c ON p.cliente_id = c.id\nWHERE c.telefono = $1\n  AND p.estado <> 'COMPLETO'\nORDER BY p.creado_en DESC\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ $node[\"Set - Datos Cliente\"].json.telefono }}"
+        }
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        0,
-        320
+        -144,
+        304
       ],
       "id": "226b0236-8a59-450d-bea4-8f1f9a8aa70a",
       "name": "DB - Obtener Pedido Activo",
+      "alwaysOutputData": true,
       "credentials": {
         "postgres": {
           "id": "EuEbLjm0Yx9snHhs",
@@ -958,8 +905,10 @@
           "mode": "name"
         },
         "filePath": "Restaurant/resources/carta.json",
-        "binaryPropertyName": "carta",
-        "additionalParameters": {}
+        "asBinaryProperty": false,
+        "additionalParameters": {
+          "reference": "main"
+        }
       },
       "type": "n8n-nodes-base.githubTool",
       "typeVersion": 1.1,
@@ -995,7 +944,7 @@
                       "type": "string",
                       "operation": "equals"
                     },
-                    "leftValue": "={{ $json.accion }}",
+                    "leftValue": "={{ $json.output.accion }}",
                     "rightValue": "MOSTRAR_CARTA",
                     "id": "02b82466-4afc-4019-a545-071468a1b84c"
                   }
@@ -1019,7 +968,7 @@
                       "type": "string",
                       "operation": "equals"
                     },
-                    "leftValue": "={{ $json.accion }}",
+                    "leftValue": "={{ $json.output.accion }}",
                     "rightValue": "INFO_PEDIDO",
                     "id": "8deb3aa2-4abd-427f-8b2e-2a63aa02b2de"
                   }
@@ -1043,7 +992,7 @@
                       "type": "string",
                       "operation": "equals"
                     },
-                    "leftValue": "={{ $json.accion }}",
+                    "leftValue": "={{ $json.output.accion }}",
                     "rightValue": "INFO_DELIVERY",
                     "id": "64aa0f28-bf73-434c-a9e4-eec32fd94d20"
                   }
@@ -1067,7 +1016,7 @@
                       "type": "string",
                       "operation": "equals"
                     },
-                    "leftValue": "={{ $json.accion }}",
+                    "leftValue": "={{ $json.output.accion }}",
                     "rightValue": "ORDEN_DESCONOCIDA",
                     "id": "2bb7f090-af22-4aa0-89ea-dca23739b915"
                   }
@@ -1088,7 +1037,7 @@
                 "conditions": [
                   {
                     "id": "3f10c068-442d-4eda-a704-43edb83b9a0f",
-                    "leftValue": "={{ $json.accion }}",
+                    "leftValue": "={{ $json.output.accion }}",
                     "rightValue": "ORDEN_CONFIRMADA",
                     "operator": {
                       "type": "string",
@@ -1113,7 +1062,7 @@
                 "conditions": [
                   {
                     "id": "15f77105-e7fb-4047-9df5-1fd8c27cde47",
-                    "leftValue": "={{ $json.accion }}",
+                    "leftValue": "={{ $json.output.accion }}",
                     "rightValue": "ESPERAR_UBICACION",
                     "operator": {
                       "type": "string",
@@ -1138,7 +1087,7 @@
                 "conditions": [
                   {
                     "id": "ccc2d31a-bc1d-4e91-9fe2-3ecf62cc2d88",
-                    "leftValue": "={{ $json.accion }}",
+                    "leftValue": "={{ $json.output.accion }}",
                     "rightValue": "ESPERAR_PAGO",
                     "operator": {
                       "type": "string",
@@ -1225,8 +1174,8 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.3,
       "position": [
-        1168,
-        528
+        1280,
+        832
       ],
       "id": "31f5d913-dd3f-4dac-9ad1-3dcb92e9bd84",
       "name": "Switch - Tipo Pedido"
@@ -1262,8 +1211,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1584,
-        656
+        1696,
+        960
       ]
     },
     {
@@ -1291,43 +1240,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1776,
-        656
-      ],
-      "credentials": {
-        "whatsAppApi": {
-          "id": "Ur6ZELwtVtxItVPE",
-          "name": "WhatsApp account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "={{ 'https://graph.facebook.com/v21.0/' + $json.phoneNumberId + '/messages' }}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "whatsAppApi",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  messaging_product: 'whatsapp',\n  to: $json.telefono,\n  type: 'text',\n  text: { body: $json.mensaje }\n}) }}",
-        "options": {}
-      },
-      "id": "45d32d06-8b97-4ef0-9e4a-3e7a022cb10d",
-      "name": "HTTP - Enviar Resumen Pedido1",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1776,
-        416
+        1888,
+        960
       ],
       "credentials": {
         "whatsAppApi": {
@@ -1361,8 +1275,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1344,
-        224
+        1456,
+        528
       ],
       "credentials": {
         "whatsAppApi": {
@@ -1449,7 +1363,7 @@
               "id": "sal4",
               "name": "mensaje",
               "type": "string",
-              "value": "=¡Hola de nuevo, {{ $node[\"Set - Datos Cliente\"].json.nombre || 'comensal' }}! Soy el robot de 🌮 *Tacomiendo*.\\n\\n¿En qué te puedo ayudar hoy?"
+              "value": "=¡Hola de nuevo, {{ $node[\"Set - Datos Cliente\"].json.nombre || 'comensal' }}! Soy el robot de 🌮 *Tacomiendo*.\n¿En qué te puedo ayudar hoy?"
             }
           ]
         },
@@ -1495,8 +1409,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1584,
-        416
+        1696,
+        720
       ]
     },
     {
@@ -1530,8 +1444,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        928,
-        272
+        1040,
+        576
       ]
     },
     {
@@ -1606,8 +1520,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1392,
-        416
+        1504,
+        720
       ],
       "id": "39ee5afa-3ead-4f36-a362-08415ab2a3e4",
       "name": "DB - Actualizar Estado a PENDIENTE_DATOS_DELIVERY",
@@ -1630,8 +1544,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1392,
-        656
+        1504,
+        960
       ],
       "id": "e36045c8-bb95-4fad-8758-c7744bfc2032",
       "name": "DB - Actualizar Estado a COMPLETO",
@@ -1651,8 +1565,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1152,
-        272
+        1264,
+        576
       ],
       "id": "6dd14040-f070-4c03-84ad-2e38c4393f56",
       "name": "DB - Actualizar Estado a PENDIENTE_UBICACION",
@@ -1745,6 +1659,299 @@
       ],
       "id": "26fa9fad-b09f-4313-8416-9d65029ec0ad",
       "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Obtener el mensaje original del usuario desde el Trigger o el Switch\n// Ajusta 'Switch - Tipo de mensaje' si tu nodo anterior se llama diferente\nconst originalMsg = $('Set - Datos Cliente').first().json.primerMensaje || $('WhatsApp Trigger').first().json.messages[0].text.body;\nconst phone = $('Set - Datos Cliente').first().json.telefono;\n\n// Obtener resultado de la base de datos (si existe)\nconst dbResult = $input.first() ? $input.first().json : {};\n\n// Determinar estado\nlet orderState = 'NONE';\nlet prevSummary = '';\n\n// Si la base de datos devolvió un ID de pedido, usamos esos datos\nif (dbResult.id && dbResult.estado) {\n  orderState = dbResult.estado;\n  prevSummary = dbResult.resumen_pedido || '';\n}\n\n// Construimos el objeto JSON EXACTO que tu System Prompt pide\nconst aiInputObject = {\n  user_message: originalMsg,\n  order_state: orderState,\n  phone: phone,\n  previous_summary: prevSummary,\n  // El menú no es necesario inyectarlo aquí si usas la herramienta 'Obtener Carta',\n  // pero el prompt dice que puede ser opcional.\n  menu: []\n};\n\n// Devolvemos este objeto como una cadena JSON (string) para que entre al Prompt\nreturn {\n  json: {\n    ai_prompt_input: JSON.stringify(aiInputObject)\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        32,
+        304
+      ],
+      "id": "7c1eded2-50ff-45c3-8ef9-1c20081bf5fa",
+      "name": "Preparar Contexto"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v21.0/' + $json.phoneNumberId + '/messages' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "whatsAppApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  messaging_product: 'whatsapp',\n  to: $json.telefono,\n  type: 'text',\n  text: { body: $json.mensaje }\n}) }}",
+        "options": {}
+      },
+      "id": "95bc4f53-4dfd-4e34-8cf2-2966e0c07794",
+      "name": "HTTP - Preguntar Pedido",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        368,
+        1472
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "Ur6ZELwtVtxItVPE",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "m1",
+              "name": "telefono",
+              "type": "string",
+              "value": "={{ $json.telefono }}"
+            },
+            {
+              "id": "m2",
+              "name": "phoneNumberId",
+              "type": "string",
+              "value": "={{ $json.phoneNumberId }}"
+            },
+            {
+              "id": "m3",
+              "name": "mensaje",
+              "type": "string",
+              "value": "=Por favor envíame el detalle completo de tu pedido en un solo mensaje (productos y cantidades)."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "180eb331-0656-4d4f-b79c-d47d477f32d6",
+      "name": "Set - Mensaje Pedir Pedido",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        1472
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "m1",
+              "name": "telefono",
+              "type": "string",
+              "value": "={{ $('Set - Datos Cliente').item.json.telefono }}"
+            },
+            {
+              "id": "m2",
+              "name": "phoneNumberId",
+              "type": "string",
+              "value": "={{ $('Set - Datos Cliente').item.json.metadata.metadata.phone_number_id }}"
+            },
+            {
+              "id": "m3",
+              "name": "mensaje",
+              "type": "string",
+              "value": "={{ $json.output.respuesta }}"
+            },
+            {
+              "id": "07ea538c-d6a8-46a5-acea-dd92c5da160e",
+              "name": "output.accion",
+              "value": "={{ $json.output.accion }}",
+              "type": "string"
+            },
+            {
+              "id": "43c81048-900e-498d-af96-ed0aec4cfa8d",
+              "name": "output.total",
+              "value": "={{ $json.output.total }}",
+              "type": "number"
+            },
+            {
+              "id": "f90169b5-aa63-4d80-97ea-a986bd560d28",
+              "name": "output.resumen_pedido",
+              "value": "={{ $json.output.resumen_pedido }}",
+              "type": "string"
+            },
+            {
+              "id": "dd977d2e-73f2-4a22-8908-526e6e886520",
+              "name": "output.errores",
+              "value": "={{ $json.output.errores }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d92cb16d-2e9b-4c23-9513-cc65340cc35f",
+      "name": "Set - Solicitar Informacion",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        864,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "5fc85b4b-029b-4a05-95eb-c8431a08e520",
+              "leftValue": "={{ $json.output.errores }}",
+              "rightValue": "",
+              "operator": {
+                "type": "array",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1072,
+        224
+      ],
+      "id": "8405107c-a5b4-4b86-9885-a2c7253f858e",
+      "name": "If - Hay Errores"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v21.0/' + $json.phoneNumberId + '/messages' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "whatsAppApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  messaging_product: 'whatsapp',\n  to: $json.telefono,\n  type: 'text',\n  text: { body: $json.mensaje }\n}) }}",
+        "options": {}
+      },
+      "id": "45d32d06-8b97-4ef0-9e4a-3e7a022cb10d",
+      "name": "HTTP - Mensaje Solicitar Informacion Delivery",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1888,
+        720
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "Ur6ZELwtVtxItVPE",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v21.0/' + $json.phoneNumberId + '/messages' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "whatsAppApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  messaging_product: 'whatsapp',\n  to: $json.telefono,\n  type: 'text',\n  text: { body: $json.mensaje }\n}) }}\n\n",
+        "options": {}
+      },
+      "id": "d1dc3236-da0b-4084-a6df-9ee6ec71d2f4",
+      "name": "HTTP - Mensaje Error",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1360,
+        128
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "Ur6ZELwtVtxItVPE",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// TODO"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        816,
+        960
+      ],
+      "id": "e4572c8f-3cf8-4bd8-9c79-f2438ced1a35",
+      "name": "Validar y armar pedido final"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "value": "marcksdbgg",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "m8-apps",
+          "mode": "name"
+        },
+        "filePath": "Restaurant/resources/carta.json",
+        "asBinaryProperty": false,
+        "additionalParameters": {}
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        816,
+        720
+      ],
+      "id": "362e5c5a-ddc7-4ea0-9906-362062109633",
+      "name": "GH - Obtener Carta",
+      "webhookId": "9d4e9dca-000e-4173-84ec-3969698bcae7",
+      "credentials": {
+        "githubApi": {
+          "id": "zv1NwM18dIrEb3IE",
+          "name": "GitHub account"
+        }
+      }
     }
   ],
   "pinData": {},
@@ -1884,7 +2091,7 @@
       "main": [
         [
           {
-            "node": "DB - Obtener Cliente",
+            "node": "DB - Crear Pedido",
             "type": "main",
             "index": 0
           }
@@ -1892,17 +2099,6 @@
       ]
     },
     "Set - Tipo Delivery": {
-      "main": [
-        [
-          {
-            "node": "DB - Obtener Cliente",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "DB - Obtener Cliente": {
       "main": [
         [
           {
@@ -1950,7 +2146,7 @@
       "main": [
         [
           {
-            "node": "HTTP - Preguntar Pedido",
+            "node": "Set - Mensaje Pedir Pedido",
             "type": "main",
             "index": 0
           }
@@ -1961,7 +2157,7 @@
       "main": [
         [
           {
-            "node": "AI Agent",
+            "node": "Preparar Contexto",
             "type": "main",
             "index": 0
           }
@@ -2015,7 +2211,13 @@
             "index": 0
           }
         ],
-        [],
+        [
+          {
+            "node": "Set - Solicitar Informacion",
+            "type": "main",
+            "index": 0
+          }
+        ],
         [
           {
             "node": "Set - Mensaje Pedir Ubicación",
@@ -2026,7 +2228,7 @@
         [],
         [
           {
-            "node": "DB - Actualizar Pedido Detalle",
+            "node": "GH - Obtener Carta",
             "type": "main",
             "index": 0
           }
@@ -2117,7 +2319,7 @@
       "main": [
         [
           {
-            "node": "HTTP - Enviar Resumen Pedido1",
+            "node": "HTTP - Mensaje Solicitar Informacion Delivery",
             "type": "main",
             "index": 0
           }
@@ -2229,13 +2431,80 @@
           }
         ]
       ]
+    },
+    "Preparar Contexto": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Mensaje Pedir Pedido": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Preguntar Pedido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Solicitar Informacion": {
+      "main": [
+        [
+          {
+            "node": "If - Hay Errores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - Hay Errores": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Mensaje Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Validar y armar pedido final": {
+      "main": [
+        [
+          {
+            "node": "DB - Actualizar Pedido Detalle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GH - Obtener Carta": {
+      "main": [
+        [
+          {
+            "node": "Validar y armar pedido final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "f4bff92e-6368-492e-a701-a4e5359b07ea",
+  "versionId": "b41f5c80-d92b-4efe-b75b-2e68534deca5",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "5c77fd69a044fc8332661839d745fcc4cdf4ca99c0317eb006f96ebbbb87b133"
