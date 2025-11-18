@@ -1,0 +1,525 @@
+{
+  "schema_version": "1.0",
+  "currency": {
+    "code": "PEN",
+    "symbol": "S/",
+    "name": "sol peruano"
+  },
+  "restaurant": {
+    "id": "tacomiendo",
+    "name": "Tacomiendo",
+    "tagline": "Placeres mundanos",
+    "contacts": {
+      "phone_whatsapp": "921127939"
+    },
+    "locations": [
+      {
+        "id": "villa_hermosa_227_cerro_colorado",
+        "label": "Villa Hermosa 227 Cerro Colorado"
+      },
+      {
+        "id": "ucayali_504_zamacola",
+        "label": "Ucayali 504 Zamácola"
+      }
+    ]
+  },
+  "menu": {
+    "notes": "Todos los precios están en soles peruanos (S/).",
+    "categories": [
+      {
+        "id": "el_clasico",
+        "name": "El Clásico",
+        "description": "Tacos clásicos con opción de tamaño 01 Medium o 02 Small.",
+        "default_item_type": "taco",
+        "size_definitions": [
+          {
+            "size_code": "01_medium",
+            "label": "01 Medium",
+            "description": "1 taco tamaño medium"
+          },
+          {
+            "size_code": "02_small",
+            "label": "02 Small",
+            "description": "2 tacos tamaño small"
+          }
+        ],
+        "items": [
+          {
+            "id": "taco_res_pollo",
+            "name": "Taco res + pollo",
+            "type": "taco",
+            "description": "Taco mixto de res y pollo.",
+            "is_vegetarian": false,
+            "variants": [
+              {
+                "id": "taco_res_pollo__01_medium",
+                "label": "01 Medium",
+                "size_code": "01_medium",
+                "price": 12.0
+              },
+              {
+                "id": "taco_res_pollo__02_small",
+                "label": "02 Small",
+                "size_code": "02_small",
+                "price": 14.0
+              }
+            ]
+          },
+          {
+            "id": "taco_pollo_chorizo",
+            "name": "Taco pollo + chorizo",
+            "type": "taco",
+            "description": "Taco mixto de pollo y chorizo.",
+            "is_vegetarian": false,
+            "variants": [
+              {
+                "id": "taco_pollo_chorizo__01_medium",
+                "label": "01 Medium",
+                "size_code": "01_medium",
+                "price": 12.0
+              },
+              {
+                "id": "taco_pollo_chorizo__02_small",
+                "label": "02 Small",
+                "size_code": "02_small",
+                "price": 14.0
+              }
+            ]
+          },
+          {
+            "id": "taco_chorizo",
+            "name": "Taco Chorizo",
+            "type": "taco",
+            "description": "Taco de chorizo.",
+            "is_vegetarian": false,
+            "variants": [
+              {
+                "id": "taco_chorizo__01_medium",
+                "label": "01 Medium",
+                "size_code": "01_medium",
+                "price": 12.0
+              },
+              {
+                "id": "taco_chorizo__02_small",
+                "label": "02 Small",
+                "size_code": "02_small",
+                "price": 14.0
+              }
+            ]
+          },
+          {
+            "id": "taco_chorizo_res",
+            "name": "Taco chorizo + res",
+            "type": "taco",
+            "description": "Taco mixto de chorizo y res.",
+            "is_vegetarian": false,
+            "variants": [
+              {
+                "id": "taco_chorizo_res__01_medium",
+                "label": "01 Medium",
+                "size_code": "01_medium",
+                "price": 12.0
+              },
+              {
+                "id": "taco_chorizo_res__02_small",
+                "label": "02 Small",
+                "size_code": "02_small",
+                "price": 14.0
+              }
+            ]
+          },
+          {
+            "id": "taco_pollo",
+            "name": "Taco Pollo",
+            "type": "taco",
+            "description": "Taco de pollo.",
+            "is_vegetarian": false,
+            "variants": [
+              {
+                "id": "taco_pollo__01_medium",
+                "label": "01 Medium",
+                "size_code": "01_medium",
+                "price": 12.0
+              },
+              {
+                "id": "taco_pollo__02_small",
+                "label": "02 Small",
+                "size_code": "02_small",
+                "price": 14.0
+              }
+            ]
+          },
+          {
+            "id": "taco_res",
+            "name": "Taco Res",
+            "type": "taco",
+            "description": "Taco de res.",
+            "is_vegetarian": false,
+            "variants": [
+              {
+                "id": "taco_res__01_medium",
+                "label": "01 Medium",
+                "size_code": "01_medium",
+                "price": 12.0
+              },
+              {
+                "id": "taco_res__02_small",
+                "label": "02 Small",
+                "size_code": "02_small",
+                "price": 14.0
+              }
+            ]
+          },
+          {
+            "id": "taco_mixto_res_pollo_chorizo",
+            "name": "Taco Mixto (res + pollo + chorizo)",
+            "type": "taco",
+            "description": "Taco mixto de res, pollo y chorizo.",
+            "is_vegetarian": false,
+            "variants": [
+              {
+                "id": "taco_mixto_res_pollo_chorizo__01_medium",
+                "label": "01 Medium",
+                "size_code": "01_medium",
+                "price": 12.0
+              },
+              {
+                "id": "taco_mixto_res_pollo_chorizo__02_small",
+                "label": "02 Small",
+                "size_code": "02_small",
+                "price": 14.0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "especiales_casa",
+        "name": "Especiales de la casa",
+        "description": "Tacos especiales con recetas y toppings únicos.",
+        "default_item_type": "taco",
+        "size_definitions": [
+          {
+            "size_code": "unico",
+            "label": "Tamaño único",
+            "description": "Porción estándar."
+          }
+        ],
+        "items": [
+          {
+            "id": "arequipeno",
+            "name": "Arequipeño",
+            "type": "taco",
+            "description": "Taco con chicharrón de cerdo, guacamole y nachitos.",
+            "availability": {
+              "days_of_week": ["martes"]
+            },
+            "is_vegetarian": false,
+            "variants": [
+              {
+                "id": "arequipeno__unico",
+                "label": "Tamaño único",
+                "size_code": "unico",
+                "price": 17.0
+              }
+            ]
+          },
+          {
+            "id": "lomito",
+            "name": "Lomito",
+            "type": "taco",
+            "description": "Taco con lomito saltado, papas nativas, nachos y guacamole.",
+            "is_vegetarian": false,
+            "variants": [
+              {
+                "id": "lomito__unico",
+                "label": "Tamaño único",
+                "size_code": "unico",
+                "price": 18.0
+              }
+            ]
+          },
+          {
+            "id": "mundano",
+            "name": "Mundano",
+            "type": "taco",
+            "description": "Taco con birria de res, guacamole y nachitos.",
+            "availability": {
+              "days_of_week": ["viernes"]
+            },
+            "is_vegetarian": false,
+            "variants": [
+              {
+                "id": "mundano__unico",
+                "label": "Tamaño único",
+                "size_code": "unico",
+                "price": 19.0
+              }
+            ]
+          },
+          {
+            "id": "caprichoso",
+            "name": "Caprichoso",
+            "type": "taco",
+            "description": "Taco de bistec marinado en hierbas aromáticas con huevo y queso fundido, guacamole y nachitos.",
+            "is_vegetarian": false,
+            "variants": [
+              {
+                "id": "caprichoso__unico",
+                "label": "Tamaño único",
+                "size_code": "unico",
+                "price": 19.0
+              }
+            ]
+          },
+          {
+            "id": "gobernador",
+            "name": "Gobernador",
+            "type": "taco",
+            "description": "Taco de bistec o filete de pollo o cerdo con queso fundido, langostinos, guacamole y nachitos.",
+            "is_vegetarian": false,
+            "variants": [
+              {
+                "id": "gobernador__unico",
+                "label": "Tamaño único",
+                "size_code": "unico",
+                "price": 20.0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "los_atrevidos",
+        "name": "Los Atrevidos",
+        "description": "Tacos con combinaciones e ingredientes especiales.",
+        "default_item_type": "taco",
+        "size_definitions": [
+          {
+            "size_code": "02_small",
+            "label": "02 Small",
+            "description": "2 tacos tamaño small"
+          },
+          {
+            "size_code": "01_medium",
+            "label": "01 Medium",
+            "description": "1 taco tamaño medium (solo donde aplique)"
+          }
+        ],
+        "items": [
+          {
+            "id": "taco_vegetariano",
+            "name": "Taco Vegetariano",
+            "type": "taco",
+            "description": "Taco vegetariano con espárragos, champiñones, choclo baby, zucchini, pimentón, zanahoria, guacamole y nachitos.",
+            "is_vegetarian": true,
+            "variants": [
+              {
+                "id": "taco_vegetariano__02_small",
+                "label": "02 Small",
+                "size_code": "02_small",
+                "price": 13.0
+              }
+            ]
+          },
+          {
+            "id": "taco_super_mixto_ahumado",
+            "name": "Taco Super Mixto Ahumado",
+            "type": "taco",
+            "description": "Taco mixto ahumado de res, pollo, tocino y chorizo.",
+            "is_vegetarian": false,
+            "variants": [
+              {
+                "id": "taco_super_mixto_ahumado__01_medium",
+                "label": "01 Medium",
+                "size_code": "01_medium",
+                "price": 13.0
+              },
+              {
+                "id": "taco_super_mixto_ahumado__02_small",
+                "label": "02 Small",
+                "size_code": "02_small",
+                "price": 15.0
+              }
+            ]
+          },
+          {
+            "id": "taco_super_mixto_fundido",
+            "name": "Taco Super Mixto Fundido",
+            "type": "taco",
+            "description": "Taco mixto de res, pollo, tocino y chorizo con queso, guacamole y nachitos.",
+            "is_vegetarian": false,
+            "variants": [
+              {
+                "id": "taco_super_mixto_fundido__01_medium",
+                "label": "01 Medium",
+                "size_code": "01_medium",
+                "price": 14.0
+              },
+              {
+                "id": "taco_super_mixto_fundido__02_small",
+                "label": "02 Small",
+                "size_code": "02_small",
+                "price": 16.0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "otros_tacos",
+        "name": "Otros tacos",
+        "description": "Tacos adicionales de la carta.",
+        "default_item_type": "taco",
+        "size_definitions": [
+          {
+            "size_code": "unico",
+            "label": "Tamaño único",
+            "description": "Porción estándar."
+          }
+        ],
+        "items": [
+          {
+            "id": "el_pastor",
+            "name": "El Pastor",
+            "type": "taco",
+            "description": "Taco de cerdo ahumado marinado en salsa especial con jugos de naranja y piña, guacamole y nachitos.",
+            "is_vegetarian": false,
+            "variants": [
+              {
+                "id": "el_pastor__unico",
+                "label": "Tamaño único",
+                "size_code": "unico",
+                "price": 17.0
+              }
+            ]
+          },
+          {
+            "id": "empanizado",
+            "name": "Empanizado",
+            "type": "taco",
+            "description": "Taco de filete de pollo empanizado con guacamole y nachitos.",
+            "is_vegetarian": false,
+            "variants": [
+              {
+                "id": "empanizado__unico",
+                "label": "Tamaño único",
+                "size_code": "unico",
+                "price": 17.0
+              }
+            ]
+          },
+          {
+            "id": "el_bistec",
+            "name": "El Bistec",
+            "type": "taco",
+            "description": "Taco de bistec marinado en hierbas aromáticas con guacamole y nachitos.",
+            "is_vegetarian": false,
+            "variants": [
+              {
+                "id": "el_bistec__unico",
+                "label": "Tamaño único",
+                "size_code": "unico",
+                "price": 17.0
+              }
+            ]
+          },
+          {
+            "id": "tacos_dorados",
+            "name": "Tacos dorados",
+            "type": "taco",
+            "description": "Tortilla artesanal de maíz rellena de pollo, chorizo o res, cubierta con salsa especial Tacomiendo. Porción de 3 unidades.",
+            "portion": {
+              "unit": "taco",
+              "count": 3
+            },
+            "is_vegetarian": false,
+            "variants": [
+              {
+                "id": "tacos_dorados__3_unidades",
+                "label": "3 unidades",
+                "size_code": "unico",
+                "price": 17.0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "topitos_bowl",
+        "name": "Topitos Bowl",
+        "description": "Bowls de 'topitos' con salsa full queso, en varias opciones de proteína.",
+        "default_item_type": "bowl",
+        "size_definitions": [
+          {
+            "size_code": "unico",
+            "label": "Tamaño único",
+            "description": "Porción estándar de bowl."
+          }
+        ],
+        "items": [
+          {
+            "id": "topito_pockor_bowl",
+            "name": "Topito Pockor",
+            "type": "bowl",
+            "description": "Topitos Bowl con pollo crocante y especias, con salsa full queso.",
+            "is_vegetarian": false,
+            "variants": [
+              {
+                "id": "topito_pockor_bowl__unico",
+                "label": "Tamaño único",
+                "size_code": "unico",
+                "price": 13.0
+              }
+            ]
+          },
+          {
+            "id": "topito_chicharron_bowl",
+            "name": "Topito Chicharrón",
+            "type": "bowl",
+            "description": "Topitos Bowl con trozos de cerdo y especias, con salsa full queso.",
+            "is_vegetarian": false,
+            "variants": [
+              {
+                "id": "topito_chicharron_bowl__unico",
+                "label": "Tamaño único",
+                "size_code": "unico",
+                "price": 13.0
+              }
+            ]
+          },
+          {
+            "id": "topito_pastor_bowl",
+            "name": "Topito Pastor",
+            "type": "bowl",
+            "description": "Topitos Bowl con trozos de cerdo y piña, especias y salsa full queso.",
+            "is_vegetarian": false,
+            "variants": [
+              {
+                "id": "topito_pastor_bowl__unico",
+                "label": "Tamaño único",
+                "size_code": "unico",
+                "price": 13.0
+              }
+            ]
+          },
+          {
+            "id": "topito_bistec_bowl",
+            "name": "Topito Bistec",
+            "type": "bowl",
+            "description": "Topitos Bowl con trozos de res y especias, con salsa full queso.",
+            "is_vegetarian": false,
+            "variants": [
+              {
+                "id": "topito_bistec_bowl__unico",
+                "label": "Tamaño único",
+                "size_code": "unico",
+                "price": 13.0
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
