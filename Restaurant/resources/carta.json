@@ -47,6 +47,7 @@
           {
             "id": "taco_res_pollo",
             "name": "Taco res + pollo",
+            "categoria_id": "el_clasico",
             "type": "taco",
             "description": "Taco mixto de res y pollo.",
             "is_vegetarian": false,
@@ -68,6 +69,7 @@
           {
             "id": "taco_pollo_chorizo",
             "name": "Taco pollo + chorizo",
+            "categoria_id": "el_clasico",
             "type": "taco",
             "description": "Taco mixto de pollo y chorizo.",
             "is_vegetarian": false,
@@ -89,6 +91,7 @@
           {
             "id": "taco_chorizo",
             "name": "Taco Chorizo",
+            "categoria_id": "el_clasico",
             "type": "taco",
             "description": "Taco de chorizo.",
             "is_vegetarian": false,
@@ -110,6 +113,7 @@
           {
             "id": "taco_chorizo_res",
             "name": "Taco chorizo + res",
+            "categoria_id": "el_clasico",
             "type": "taco",
             "description": "Taco mixto de chorizo y res.",
             "is_vegetarian": false,
@@ -131,6 +135,7 @@
           {
             "id": "taco_pollo",
             "name": "Taco Pollo",
+            "categoria_id": "el_clasico",
             "type": "taco",
             "description": "Taco de pollo.",
             "is_vegetarian": false,
@@ -152,6 +157,7 @@
           {
             "id": "taco_res",
             "name": "Taco Res",
+            "categoria_id": "el_clasico",
             "type": "taco",
             "description": "Taco de res.",
             "is_vegetarian": false,
@@ -173,6 +179,7 @@
           {
             "id": "taco_mixto_res_pollo_chorizo",
             "name": "Taco Mixto (res + pollo + chorizo)",
+            "categoria_id": "el_clasico",
             "type": "taco",
             "description": "Taco mixto de res, pollo y chorizo.",
             "is_vegetarian": false,
@@ -209,6 +216,7 @@
           {
             "id": "arequipeno",
             "name": "Arequipeño",
+            "categoria_id": "especiales_casa",
             "type": "taco",
             "description": "Taco con chicharrón de cerdo, guacamole y nachitos.",
             "availability": {
@@ -227,6 +235,7 @@
           {
             "id": "lomito",
             "name": "Lomito",
+            "categoria_id": "especiales_casa",
             "type": "taco",
             "description": "Taco con lomito saltado, papas nativas, nachos y guacamole.",
             "is_vegetarian": false,
@@ -242,6 +251,7 @@
           {
             "id": "mundano",
             "name": "Mundano",
+            "categoria_id": "especiales_casa",
             "type": "taco",
             "description": "Taco con birria de res, guacamole y nachitos.",
             "availability": {
@@ -260,6 +270,7 @@
           {
             "id": "caprichoso",
             "name": "Caprichoso",
+            "categoria_id": "especiales_casa",
             "type": "taco",
             "description": "Taco de bistec marinado en hierbas aromáticas con huevo y queso fundido, guacamole y nachitos.",
             "is_vegetarian": false,
@@ -275,6 +286,7 @@
           {
             "id": "gobernador",
             "name": "Gobernador",
+            "categoria_id": "especiales_casa",
             "type": "taco",
             "description": "Taco de bistec o filete de pollo o cerdo con queso fundido, langostinos, guacamole y nachitos.",
             "is_vegetarian": false,
@@ -310,6 +322,7 @@
           {
             "id": "taco_vegetariano",
             "name": "Taco Vegetariano",
+            "categoria_id": "los_atrevidos",
             "type": "taco",
             "description": "Taco vegetariano con espárragos, champiñones, choclo baby, zucchini, pimentón, zanahoria, guacamole y nachitos.",
             "is_vegetarian": true,
@@ -325,6 +338,7 @@
           {
             "id": "taco_super_mixto_ahumado",
             "name": "Taco Super Mixto Ahumado",
+            "categoria_id": "los_atrevidos",
             "type": "taco",
             "description": "Taco mixto ahumado de res, pollo, tocino y chorizo.",
             "is_vegetarian": false,
@@ -346,6 +360,7 @@
           {
             "id": "taco_super_mixto_fundido",
             "name": "Taco Super Mixto Fundido",
+            "categoria_id": "los_atrevidos",
             "type": "taco",
             "description": "Taco mixto de res, pollo, tocino y chorizo con queso, guacamole y nachitos.",
             "is_vegetarian": false,
@@ -382,6 +397,7 @@
           {
             "id": "el_pastor",
             "name": "El Pastor",
+            "categoria_id": "otros_tacos",
             "type": "taco",
             "description": "Taco de cerdo ahumado marinado en salsa especial con jugos de naranja y piña, guacamole y nachitos.",
             "is_vegetarian": false,
@@ -397,6 +413,7 @@
           {
             "id": "empanizado",
             "name": "Empanizado",
+            "categoria_id": "otros_tacos",
             "type": "taco",
             "description": "Taco de filete de pollo empanizado con guacamole y nachitos.",
             "is_vegetarian": false,
@@ -412,6 +429,7 @@
           {
             "id": "el_bistec",
             "name": "El Bistec",
+            "categoria_id": "otros_tacos",
             "type": "taco",
             "description": "Taco de bistec marinado en hierbas aromáticas con guacamole y nachitos.",
             "is_vegetarian": false,
@@ -427,6 +445,7 @@
           {
             "id": "tacos_dorados",
             "name": "Tacos dorados",
+            "categoria_id": "otros_tacos",
             "type": "taco",
             "description": "Tortilla artesanal de maíz rellena de pollo, chorizo o res, cubierta con salsa especial Tacomiendo. Porción de 3 unidades.",
             "portion": {
@@ -461,6 +480,7 @@
           {
             "id": "topito_pockor_bowl",
             "name": "Topito Pockor",
+            "categoria_id": "topitos_bowl",
             "type": "bowl",
             "description": "Topitos Bowl con pollo crocante y especias, con salsa full queso.",
             "is_vegetarian": false,
@@ -476,6 +496,7 @@
           {
             "id": "topito_chicharron_bowl",
             "name": "Topito Chicharrón",
+            "categoria_id": "topitos_bowl",
             "type": "bowl",
             "description": "Topitos Bowl con trozos de cerdo y especias, con salsa full queso.",
             "is_vegetarian": false,
@@ -491,6 +512,7 @@
           {
             "id": "topito_pastor_bowl",
             "name": "Topito Pastor",
+            "categoria_id": "topitos_bowl",
             "type": "bowl",
             "description": "Topitos Bowl con trozos de cerdo y piña, especias y salsa full queso.",
             "is_vegetarian": false,
@@ -506,6 +528,7 @@
           {
             "id": "topito_bistec_bowl",
             "name": "Topito Bistec",
+            "categoria_id": "topitos_bowl",
             "type": "bowl",
             "description": "Topitos Bowl con trozos de res y especias, con salsa full queso.",
             "is_vegetarian": false,
