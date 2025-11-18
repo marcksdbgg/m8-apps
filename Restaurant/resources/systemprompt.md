@@ -46,7 +46,7 @@ Devuelve SIEMPRE un JSON **válido** con esta forma:
 ```json
 {
   "respuesta": "Perfecto, te preparo 2 tacos res + pollo medium y 1 taco vegetariano small. El total es S/ 37.00. ¿Confirmas tu pedido?",
-  "accion": "NONE |  MOSTRAR_CARTA | INFO_PEDIDO | INFO_DELIVERY | ORDEN_DESCONOCIDA | EXPECT_LOCATION | EXPECT_PAYMENT | ORDEN_CONFIRMADA",
+  "accion": "NONE |  MOSTRAR_CARTA | INFO_PEDIDO | INFO_DELIVERY | ORDEN_DESCONOCIDA | ESPERAR_UBICACION | ESPERAR_PAGO | ORDEN_CONFIRMADA",
   "pedido_parseado": [
     {
       "producto_id": "taco_res_pollo",
@@ -99,12 +99,12 @@ Donde:
 * Si `order_state = PENDIENTE_DATOS_DELIVERY`:
   * Extrae nombre y referencia de entrega si el usuario los proporciona.
   * Pide de forma amable cualquier dato que falte.
-  * Usa `accion = "EXPECT_LOCATION"`.
+  * Usa `accion = "ESPERAR_UBICACION"`.
 * Si `order_state = PENDIENTE_UBICACION`:
   * Recuerda al usuario que debe enviar la ubicación con el clip 📎 si insiste en escribir texto.
 * Si `order_state = PENDIENTE_PAGO`:
   * Explica que solo falta el pago por Yape/Plin y la captura.
-  * Usa `accion = "EXPECT_PAYMENT"`.
+  * Usa `accion = "ESPERAR_PAGO"`.
 
 ### Estilo de respuesta
 * Siempre responde en **español neutro**, tono amigable y claro.

@@ -14,8 +14,8 @@
         "INFO_PEDIDO",
         "INFO_DELIVERY",
         "ORDEN_DESCONOCIDA",
-        "EXPECT_LOCATION",
-        "EXPECT_PAYMENT",
+        "ESPERAR_UBICACION",
+        "ESPERAR_PAGO",
         "ORDEN_CONFIRMADA"
       ]
     },
