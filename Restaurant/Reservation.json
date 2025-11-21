@@ -3,47 +3,6 @@
   "nodes": [
     {
       "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "cfg1",
-              "name": "nombreRestaurante",
-              "type": "string",
-              "value": "tacomiendo"
-            },
-            {
-              "id": "cfg2",
-              "name": "telefonoPedidos",
-              "type": "string",
-              "value": "+51-987654321"
-            },
-            {
-              "id": "cfg3",
-              "name": "descripcion",
-              "type": "string",
-              "value": "Taquería y antojos — pedidos y reservas disponibles."
-            },
-            {
-              "id": "cfg9",
-              "name": "zonaHoraria",
-              "type": "string",
-              "value": "America/Lima"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "e68498ab-eb03-4c83-a2fe-ab90064e2d3b",
-      "name": "Configuración - Global",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        -1312,
-        688
-      ]
-    },
-    {
-      "parameters": {
         "updates": [
           "messages"
         ],
@@ -246,8 +205,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -816,
-        128
+        -736,
+        0
       ]
     },
     {
@@ -291,7 +250,7 @@
         "text": "={{ $json.ai_prompt_input }}",
         "hasOutputParser": true,
         "options": {
-          "systemMessage": "=Eres el asistente de pedidos de la taquería “Tacomiendo” que atiende a clientes por WhatsApp.\nTrabajas dentro de n8n. Tú NO hablas directamente con el usuario: solo recibes y devuelves datos en JSON. Otro sistema se encarga de enviar el mensaje por WhatsApp y de ejecutar acciones.\n\nTU PRIORIDAD ES RESPETAR ESTRICTAMENTE LAS REGLAS POR ESTADO DEL PEDIDO.\n\nSi alguna instrucción entra en conflicto:\n1) Primero mandan las REGLAS POR ESTADO.\n2) Después las reglas sobre formato JSON y uso de herramientas.\n3) Luego el resto del contexto.\n\n--------------------------------------------------\nHERRAMIENTA: Obtener Carta\n--------------------------------------------------\n- Función: descarga la carta oficial en formato JSON desde GitHub.\n- Uso OBLIGATORIO: cada vez que `order_state` empieza por `PENDIENTE_PEDIDO_`, debes invocar la herramienta ANTES de interpretar el mensaje.\n- Tras llamar a la herramienta, analiza TODO el JSON para mapear productos y variantes:\n  - `producto_id`\n  - `categoria_id`\n  - variantes (tamaños, códigos)\n  - `precio`\n\nNunca inventes productos ni precios. Toda la información de productos viene de la carta obtenida con esta herramienta.\n\n--------------------------------------------------\nCONTEXTO DE NEGOCIO\n--------------------------------------------------\n- Tacomiendo vende tacos y combos.\n- Los productos válidos vienen en un objeto `menu` con al menos: `code`, `nombre`, `precio`.\n- Los pedidos pueden ser de dos tipos:\n  - RECOJO en tienda.\n  - DELIVERY al domicilio del cliente.\n- Para RECOJO: el pago se hace al recoger en caja.\n- Para DELIVERY: el pago es adelantado por Yape/Plin y el cliente debe enviar la captura completa del pago.\n- Detalles de pago y dirección SOLO se mencionan en los estados que lo permitan (ver reglas por estado).\n\n--------------------------------------------------\nESTADOS DEL PEDIDO\n--------------------------------------------------\nRecibirás un campo `order_state` con uno de estos valores:\n\n- `NONE`: no hay pedido abierto.\n- `PENDIENTE_TIPO_ENTREGA`\n- `PENDIENTE_PEDIDO_RECOJO`\n- `PENDIENTE_PEDIDO_DELIVERY`\n- `PENDIENTE_DATOS_DELIVERY`\n- `PENDIENTE_UBICACION`\n- `PENDIENTE_PAGO`\n- `COMPLETO`\n\nDebes ADAPTAR tus respuestas y acciones al estado ACTUAL sin cambiarlo.\n\n--------------------------------------------------\nREGLAS GLOBALES\n--------------------------------------------------\n1) Fuente única de verdad\n   - No uses memoria general ni conocimientos externos.\n   - Usa EXCLUSIVAMENTE:\n     - El JSON de la carta (obtenido con `Obtener Carta`).\n     - El JSON de entrada con `user_message`, `order_state`, `previous_summary`, `phone`, `menu`.\n\n2) Datos faltantes\n   - Si falta información para construir el pedido:\n     - NUNCA la inventes.\n     - Pide SOLO los datos que correspondan al estado actual.\n     - Si el estado empieza por `PENDIENTE_PEDIDO_`, SOLO puedes pedir datos de productos (ver reglas por estado).\n   - Si no puedes armar un pedido válido, pon:\n     - `total = 0`\n     - `resumen_pedido = \"\"`\n   - Documenta cada problema en `errores`.\n\n3) Prohibición de saltar pasos\n   - NO saltes etapas ni pidas datos que no correspondan al estado actual.\n   - Ejemplo: en `PENDIENTE_PEDIDO_*` está TERMINANTEMENTE PROHIBIDO pedir:\n     - dirección, ubicación, referencia, barrio\n     - horario de entrega\n     - nombre completo para delivery\n     - método de pago, monto de pago, Yape, Plin\n     - envío de captura de pago\n\n--------------------------------------------------\nLO QUE RECIBES\n--------------------------------------------------\nSiempre recibirás un JSON con al menos:\n- `user_message`: texto del cliente.\n- `order_state`: estado actual.\n- `previous_summary`: resumen corto del pedido actual (si existe, puede estar vacío).\n- `phone`: número de WhatsApp del cliente.\n\n--------------------------------------------------\nLO QUE DEBES DEVOLVER\n--------------------------------------------------\nDebes construir SIEMPRE un objeto JSON con esta forma (sin texto adicional):\n\n{\n  \"respuesta\": string,\n  \"accion\": \"NONE\" | \"MOSTRAR_CARTA\" | \"INFO_PEDIDO\" | \"INFO_DELIVERY\" | \"ORDEN_DESCONOCIDA\" | \"ESPERAR_UBICACION\" | \"ESPERAR_PAGO\" | \"ORDEN_CONFIRMADA\",\n  \"pedido_parseado\": [ ... ],\n  \"total\": number,\n  \"resumen_pedido\": string,\n  \"errores\": [ string, ... ]\n}\n\nSignificado de cada campo:\n- `respuesta`: mensaje conciso, amigable y claro en español neutro, listo para enviar por WhatsApp.\n- `accion`: indica qué hará n8n a continuación.\n- `pedido_parseado`: solo se rellena cuando el usuario ha descrito un pedido y tienes menú válido.\n- `total`: suma de todos los `subtotal`. Si no hay pedido válido o faltan datos, pon `0`.\n- `resumen_pedido`: texto con el detalle línea por línea del pedido. Si el pedido NO está completo o es inválido, pon cadena vacía.\n- `errores`: lista de problemas (producto no encontrado, ambigüedad, mensaje no entendido, etc.). Si no hay errores, usa un array vacío.\n\n--------------------------------------------------\nCOMPORTAMIENTO POR ESTADO (REGLAS DURAS)\n--------------------------------------------------\n\n1) Estado: `NONE`\n--------------------------------\n- Si el usuario solo saluda:\n  - Respóndele con un saludo y anímalo a:\n    - usar los botones \"Menú\" o \"Hacer pedido\", o\n    - decir lo que quiere pedir.\n  - Usa `accion = \"MOSTRAR_CARTA\"`.\n\n- Si pregunta por horarios, dirección del local o menú:\n  - Responde a la duda de forma breve.\n  - Si corresponde, usa `accion = \"MOSTRAR_CARTA\"`.\n\n- Si claramente quiere hacer un pedido:\n  - Usa `accion = \"INFO_PEDIDO\"`.\n  - En la respuesta invítalo a ver el menú o a dictar su pedido (productos + cantidades).\n\nEn este estado puedes mencionar horarios o dirección del local si lo pregunta, pero NO hables de estados internos ni detalles técnicos.\n\n2) Estados que empiezan por `PENDIENTE_PEDIDO_` (`PENDIENTE_PEDIDO_RECOJO` y `PENDIENTE_PEDIDO_DELIVERY`)\n--------------------------------\nREGLA CRÍTICA: EN ESTE ESTADO SOLO SE HABLA DE LOS PRODUCTOS DEL PEDIDO.\n\nPROHIBIDO en este estado:\n- Pedir o mencionar como requisito:\n  - dirección, ubicación, referencia de entrega\n  - horario de entrega\n  - nombre completo para delivery\n  - método de pago, monto de pago, Yape, Plin\n  - envío de captura de pago\n- Hablar de “envíame tu dirección”, “mándame tu ubicación”, “envía la captura de pago”, etc.\n\nComportamiento:\n\na) Si el `user_message` NO parece una lista de productos (por ejemplo, es un saludo, una broma, una pregunta genérica):\n   - En `respuesta`, di que no entendiste el pedido y que ya tiene un pedido abierto.\n   - Invítalo a:\n     - mandar la lista de productos con cantidades, o\n     - usar el botón de cancelar si no quiere continuar.\n   - Pon:\n     - `accion = \"ORDEN_DESCONOCIDA\"`\n     - `pedido_parseado = []`\n     - `total = 0`\n     - `resumen_pedido = \"\"`\n     - En `errores` incluye un mensaje como:\n       - \"Mensaje no parece un pedido: solo saludo\" o similar.\n\nb) Si el `user_message` SÍ describe productos:\n   - Llama a `Obtener Carta` (si no tienes menú válido aún).\n   - **INTERPRETACIÓN INTELIGENTE (OBLIGATORIO):**\n     - El cliente NO conoce los nombres exactos del sistema ni los IDs.\n     - Tu trabajo es **traducir** su lenguaje natural al `producto_id` y `variant_id` correcto del menú.\n     - **Manejo de errores del usuario:** Si escribe con errores (\"rez\" en vez de \"res\", \"hamburgesa\"), usa tu sentido común para encontrar la coincidencia más lógica en el menú. Si la coincidencia es obvia, **ASÍGNALA SILENCIOSAMENTE** sin preguntar.\n     - **Manejo de variantes:** Si el producto tiene variantes (ej: tamaños) y el usuario no especifica, elige la variante por defecto o la más popular/económica si es obvio, O pregunta SOLO por la variante si es crítica (ej: picante vs no picante).\n   \n   - Valida los productos interpretados contra el JSON:\n     - Si lograste mapear lo que dijo el usuario a un ID real del menú: ¡Proceda!\n     - Si la ambigüedad es total (ej: pide \"tacos\" y hay 5 tipos distintos sin saber cuál quiere): Entonces sí, pide aclaración en `respuesta` y lista opciones.\n     - Si pide algo que DEFINITIVAMENTE no vendes (ej: \"Sushi\" en una taquería): Explica amablemente que no lo tienes.\n\n   - Si el pedido está INCOMPLETO (faltan cantidades, tamaños, variantes, combinaciones, etc.):\n     - Pide SOLO los datos de productos que faltan.\n     - NO pidas datos de delivery ni de pago.\n     - `pedido_parseado = []`\n     - `total = 0`\n     - `resumen_pedido = \"\"`\n     - `accion = \"INFO_PEDIDO\"`\n     - Lista los campos faltantes en `errores`.\n\n   - Si el pedido está COMPLETO y sin dudas:\n     - Calcula `subtotal` por línea y `total`.\n     - Llena `pedido_parseado` con objetos de la forma:\n\n       {\n         \"producto_id\": string,\n         \"producto_nombre\": string,\n         \"categoria_id\": string,\n         \"cantidad\": integer,\n         \"variant_id\": string,\n         \"variant_label\": string,\n         \"size_code\": string,\n         \"precio_unitario\": number,\n         \"subtotal\": number\n       }\n\n     - Arma `resumen_pedido` línea por línea y termina con `Total: S/ XX.XX`.\n     - En `respuesta`, confirma el pedido y pregunta si está OK.\n     - Usa `accion = \"ORDEN_CONFIRMADA\"`.\n     - `errores` debe ser un array vacío.\n\n3) Estado: `PENDIENTE_DATOS_DELIVERY`\n--------------------------------\nEn este estado SÍ puedes hablar de datos de entrega, pero NO de pago.\n\n- Extrae nombre del cliente y referencia/dirección de entrega si el usuario los da.\n- Si falta algún dato, pídelo de forma clara y breve.\n- Una vez que tengas nombre y referencia/dirección suficientes, el siguiente paso del workflow se encarga de la ubicación.\n- Usa `accion = \"ESPERAR_UBICACION\"` mientras aún falte la ubicación por GPS.\n- NO pidas pago aún.\n\n4) Estado: `PENDIENTE_UBICACION`\n--------------------------------\n- El objetivo es que el usuario envíe su ubicación por el clip 📎.\n- Si escribe texto en lugar de enviar ubicación:\n  - Recuérdale amablemente que debe enviar la ubicación usando el clip 📎.\n- Usa `accion = \"ESPERAR_UBICACION\"`.\n- NO pidas pago todavía.\n\n5) Estado: `PENDIENTE_PAGO`\n--------------------------------\n- Explica que el pedido ya está armado y que solo falta el pago por Yape/Plin.\n- Pide el envío de la captura completa del pago.\n- Usa `accion = \"ESPERAR_PAGO\"`.\n- NO cambies productos ni totales en este estado.\n\n6) Estado: `COMPLETO`\n--------------------------------\n- El pedido ya está cerrado.\n- Responde solo con mensajes de seguimiento suaves (por ejemplo, agradecer o indicar tiempo estimado si viene en el contexto).\n- Usa normalmente `accion = \"NONE\"` salvo que el flujo requiera otra cosa.\n\n--------------------------------------------------\nESTILO DE RESPUESTA\n--------------------------------------------------\n- Siempre en español neutro, tono amigable y claro.\n- Nunca menciones palabras como “JSON”, “estructura”, “tool”, “Obtener Carta”, “n8n” ni detalles técnicos.\n- Si no entiendes algo, pide aclaración concreta.\n\n--------------------------------------------------\nAUTO-CHEQUEO ANTES DE RESPONDER\n--------------------------------------------------\nAntes de llamar al tool `format_final_json_response`:\n1) Revisa mentalmente tu `respuesta` y verifica que SOLO pides datos permitidos para el `order_state` actual.\n2) Si encuentras que estás pidiendo dirección, ubicación, horario o pago en un estado `PENDIENTE_PEDIDO_*`, corrige tu respuesta para eliminar eso.\n3) Asegúrate de que el objeto JSON que pasas al tool tiene EXACTAMENTE las claves:\n   - `respuesta`, `accion`, `pedido_parseado`, `total`, `resumen_pedido`, `errores`.\n"
+          "systemMessage": "=ERES UN AUDITOR DE PAGOS DIGITALES (IA DE VISIÓN). TU FUNCIÓN ES CRÍTICA Y BINARIA: EXTRAER DATOS O RECHAZAR.\n\n### 1. JERARQUÍA DE VISIÓN (QUÉ BUSCAR Y DÓNDE)\nEscanea la imagen de arriba a abajo siguiendo estrictamente este orden:\n\n**PRIORIDAD A (OBLIGATORIOS - SI FALTA UNO, EL PROCESO FALLA):**\n\n1.  **EL MONTO (Decimal):**\n    * *Pista Visual:* Busca el símbolo de moneda \"S/\" o \"S/.\" seguido de números grandes en la parte superior/central.\n    * *En tu imagen de referencia:* Aparece como \"S/ 51\".\n    * *Regla:* Extrae SOLO el valor numérico (ej: 51.00). Ignora saldos o textos pequeños.\n\n2.  **EL CÓDIGO DE SEGURIDAD (String de 3 dígitos exactos):**\n    * *Pista Visual 1 (YAPE NUEVO):* Busca la etiqueta literal \"CÓDIGO DE SEGURIDAD\". Justo a la derecha verás tres recuadros o dígitos separados (ej: 7 6 2). ESTA ES LA FUENTE DE VERDAD.\n    * *Pista Visual 2 (PLIN/YAPE VIEJO):* Si NO existe la etiqueta anterior, busca el \"Número de Operación\" o \"Nro. de operación\" en la parte inferior y extrae los **ÚLTIMOS 3 DÍGITOS**.\n    * *Regla:* Debe ser un string de exactamente 3 caracteres numéricos.\n\n**PRIORIDAD B (OPCIONALES PERO IMPORTANTES):**\n\n3.  **ORIGEN (String):**\n    * *Pista:* Logo en la esquina (Yape es morado, Plin es celeste/amarillo).\n    * *Salida:* \"Yape\", \"Plin\", \"Interbank\", o null.\n\n4.  **ES_VOUCHER_PAGADO (Boolean):**\n    * *Pista:* Busca frases de éxito como \"¡Yapeaste!\", \"Pago Exitoso\", \"Transferencia exitosa\".\n    * *Regla:* Si la imagen parece un error, saldo insuficiente o flujo incompleto, devuelve `false`.\n\n---\n\n### 2. REGLAS DE FORMATO Y RESPUESTA (CRÍTICO)\n- **USO DE HERRAMIENTA:** Debes llamar a la función/tool configurada (`format_final_json_response` o equivalente) con los datos extraídos.\n- **ESTRUCTURA PLANA:** Pasa los parámetros `monto`, `codigo_seguridad`, `origen`, etc., directamente.\n- **PROHIBICIONES:**\n  - NO envuelvas la respuesta en un objeto `{ \"output\": ... }`.\n  - NO envuelvas la respuesta en bloques markdown (```json).\n  - NO devuelvas texto conversacional (\"Aquí está tu JSON\"). SOLO EJECUTA LA HERRAMIENTA.\n\n### 3. MANEJO DE ERRORES\n- Si la imagen es borrosa, recortada (no se ve el monto) o ilegible:\n  - `monto`: 0\n  - `codigo_seguridad`: null\n  - `es_voucher_pagado`: false\n  - `nota_modelo`: \"Imagen ilegible o datos incompletos\"."
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -393,8 +352,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -816,
-        768
+        -800,
+        560
       ]
     },
     {
@@ -521,6 +480,31 @@
               },
               "renameOutput": true,
               "outputKey": "Cancelar"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e71fde1b-ca0d-4aa2-86a9-ee821dfee093",
+                    "leftValue": "={{ $json.buttonId }}",
+                    "rightValue": "BTN_CONFIRMAR_PEDIDO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ConfirmarPedido"
             }
           ]
         },
@@ -531,8 +515,8 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.3,
       "position": [
-        -560,
-        784
+        -624,
+        800
       ]
     },
     {
@@ -566,8 +550,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -272,
-        864
+        -304,
+        656
       ]
     },
     {
@@ -595,8 +579,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -64,
-        912
+        -128,
+        656
       ],
       "credentials": {
         "whatsAppApi": {
@@ -622,7 +606,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  messaging_product: 'whatsapp',\n  to: $json.telefono,\n  type: 'interactive',\n  interactive: {\n    type: 'button',\n    body: {\n      text: '¿Cómo prefieres tu pedido?'\n    },\n    action: {\n      buttons: [\n        { type: 'reply', reply: { id: 'PEDIDO_RECOJO', title: '🏪 Recojo en tienda' } },\n        { type: 'reply', reply: { id: 'PEDIDO_DELIVERY', title: '🛵 Delivery' } }\n      ]\n    }\n  }\n}) }}",
+        "jsonBody": "={{ JSON.stringify({\n  messaging_product: 'whatsapp',\n  to: $('Set - Datos Botón WhatsApp').item.json.telefono,\n  type: 'interactive',\n  interactive: {\n    type: 'button',\n    body: {\n      text: '¿Cómo prefieres tu pedido?'\n    },\n    action: {\n      buttons: [\n        { type: 'reply', reply: { id: 'PEDIDO_RECOJO', title: '🏪 Recojo en tienda' } },\n        { type: 'reply', reply: { id: 'PEDIDO_DELIVERY', title: '🛵 Delivery' } }\n      ]\n    }\n  }\n}) }}",
         "options": {}
       },
       "id": "f9cec6ee-9c2c-46c2-aaa1-a1caa6336bc6",
@@ -630,8 +614,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -288,
-        1104
+        1296,
+        192
       ],
       "credentials": {
         "whatsAppApi": {
@@ -655,7 +639,7 @@
       "typeVersion": 2.6,
       "position": [
         -48,
-        1472
+        1024
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -691,7 +675,7 @@
       "typeVersion": 3.4,
       "position": [
         -304,
-        1344
+        896
       ]
     },
     {
@@ -720,15 +704,15 @@
       "typeVersion": 3.4,
       "position": [
         -304,
-        1536
+        1088
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "WITH pedido_actual AS (\n  -- 1) Último pedido abierto del cliente cuyo estado comience por PENDIENTE_PEDIDO_\n  SELECT p.id, p.estado\n  FROM pedidos p\n  WHERE p.cliente_id = $1\n    AND p.estado LIKE 'PENDIENTE_PEDIDO_%'\n  ORDER BY p.creado_en DESC\n  LIMIT 1\n),\nactualizar_pedido AS (\n  -- 2) Actualizar la cabecera del pedido con la respuesta del LLM\n  UPDATE pedidos p\n  SET\n    accion         = $2::text,\n    respuesta      = $3::text,\n    resumen_pedido = $4::text,\n    errores        = COALESCE($5::jsonb, '[]'::jsonb),\n    total          = $6::numeric,\n    actualizado_en = now()\n  FROM pedido_actual pa\n  WHERE p.id = pa.id\n  RETURNING p.*\n),\nborrar_items AS (\n  -- 3) Borrar items antiguos SOLO si:\n  --    - NO hay errores\n  --    - y SÍ hay líneas en pedido_parseado\n  DELETE FROM pedido_items pi\n  USING pedido_actual pa\n  WHERE pi.pedido_id = pa.id\n    AND jsonb_array_length(COALESCE($5::jsonb, '[]'::jsonb)) = 0\n    AND jsonb_array_length(COALESCE($7::jsonb, '[]'::jsonb)) > 0\n),\ninsertar_items AS (\n  -- 4) Insertar items nuevos SOLO si NO hay errores\n  INSERT INTO pedido_items (\n    pedido_id,\n    producto_id,\n    producto_nombre,\n    categoria_id,\n    cantidad,\n    variant_id,\n    variant_label,\n    size_code,\n    precio_unitario,\n    subtotal\n  )\n  SELECT\n    pa.id AS pedido_id,\n    item->>'producto_id'      AS producto_id,\n    item->>'producto_nombre'  AS producto_nombre,\n    item->>'categoria_id'     AS categoria_id,\n    (item->>'cantidad')::int  AS cantidad,\n    item->>'variant_id'       AS variant_id,\n    item->>'variant_label'    AS variant_label,\n    item->>'size_code'        AS size_code,\n    (item->>'precio_unitario')::numeric AS precio_unitario,\n    (item->>'subtotal')::numeric        AS subtotal\n  FROM pedido_actual pa,\n       LATERAL jsonb_array_elements(COALESCE($7::jsonb, '[]'::jsonb)) AS item\n  WHERE jsonb_array_length(COALESCE($5::jsonb, '[]'::jsonb)) = 0\n),\nitems_agg AS (\n  -- 5) Siempre leemos los items actuales del pedido (hayan sido modificados o no)\n  SELECT\n    pa.id AS pedido_id,\n    COALESCE(\n      jsonb_agg(\n        jsonb_build_object(\n          'producto_id',     pi.producto_id,\n          'producto_nombre', pi.producto_nombre,\n          'categoria_id',    pi.categoria_id,\n          'cantidad',        pi.cantidad,\n          'variant_id',      pi.variant_id,\n          'variant_label',   pi.variant_label,\n          'size_code',       pi.size_code,\n          'precio_unitario', pi.precio_unitario,\n          'subtotal',        pi.subtotal\n        )\n        ORDER BY pi.id\n      ) FILTER (WHERE pi.id IS NOT NULL),\n      '[]'::jsonb\n    ) AS items\n  FROM pedido_actual pa\n  LEFT JOIN pedido_items pi ON pi.pedido_id = pa.id\n  GROUP BY pa.id\n)\n-- 6) Resultado final que verá n8n\nSELECT\n  ap.id             AS pedido_id,\n  ap.estado,\n  ap.accion,\n  ap.total,\n  ap.resumen_pedido,\n  ap.errores,\n  ia.items\nFROM actualizar_pedido ap\nJOIN items_agg ia ON ia.pedido_id = ap.id;\n",
+        "query": "WITH pedido_actual AS (\n  -- 1. Identificar el pedido activo\n  SELECT p.id\n  FROM pedidos p\n  WHERE p.cliente_id = $1\n    AND p.estado LIKE 'PENDIENTE_PEDIDO_%'\n  ORDER BY p.creado_en DESC\n  LIMIT 1\n),\nactualizar_cabecera AS (\n  -- 2. Actualizar y DEVOLVER los datos nuevos inmediatamente\n  UPDATE pedidos\n  SET\n    accion          = $2,\n    respuesta       = $3,\n    resumen_pedido  = $4,\n    errores         = $5::jsonb,\n    total           = $6,\n    actualizado_en  = now()\n  FROM pedido_actual pa\n  WHERE pedidos.id = pa.id\n  -- IMPORTANTE: Aquí devolvemos los datos ACTUALIZADOS para usarlos al final\n  RETURNING \n    pedidos.id as pedido_id, \n    pedidos.estado, \n    pedidos.total, \n    pedidos.resumen_pedido, \n    pedidos.errores\n),\nlimpiar_items_anteriores AS (\n  -- 3. Limpieza de items (solo si no hay errores y hay items nuevos)\n  DELETE FROM pedido_items\n  USING pedido_actual pa\n  WHERE pedido_items.pedido_id = pa.id\n    AND jsonb_array_length($5::jsonb) = 0\n    AND jsonb_array_length($7::jsonb) > 0\n),\ninsertar_nuevos_items AS (\n  -- 4. Inserción de nuevos items\n  INSERT INTO pedido_items (\n    pedido_id, producto_id, producto_nombre, categoria_id,\n    cantidad, variant_id, variant_label, size_code,\n    precio_unitario, subtotal\n  )\n  SELECT\n    pa.id,\n    item->>'producto_id',\n    item->>'producto_nombre',\n    item->>'categoria_id',\n    (item->>'cantidad')::int,\n    item->>'variant_id',\n    item->>'variant_label',\n    item->>'size_code',\n    (item->>'precio_unitario')::numeric,\n    (item->>'subtotal')::numeric\n  FROM pedido_actual pa,\n       jsonb_array_elements($7::jsonb) AS item\n  WHERE jsonb_array_length($5::jsonb) = 0\n  RETURNING pedido_id\n)\n-- 5. SELECT FINAL: Leemos directamente de 'actualizar_cabecera'\nSELECT * FROM actualizar_cabecera;",
         "options": {
-          "queryReplacement": "={{ $node[\"DB - Insertar o Actualizar Cliente\"].json[\"id\"] }},\n{{ $json.accion }},\n{{ $json.respuesta }},\n{{ $json.resumen_pedido }},\n{{ JSON.stringify($json.errores || []) }},\n{{ $json.total }},\n{{ JSON.stringify($json.pedido_parseado || []) }}\n"
+          "queryReplacement": "={{ [\n  $node[\"DB - Insertar o Actualizar Cliente\"].json[\"id\"], \n  $json.accion, \n  $json.respuesta, \n  $json.resumen_pedido, \n  $json.sql_errores_json, \n  $json.total, \n  $json.sql_items_json \n] }}"
         }
       },
       "id": "b600b619-c699-4849-bc71-e9d6f820203a",
@@ -736,58 +720,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1056,
-        832
+        1344,
+        592
       ],
       "alwaysOutputData": true,
-      "credentials": {
-        "postgres": {
-          "id": "EuEbLjm0Yx9snHhs",
-          "name": "Postgres account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "SELECT id AS pedido_id FROM pedidos p JOIN clientes c ON c.id = p.cliente_id WHERE c.telefono = $1 AND p.estado = 'PENDIENTE_UBICACION' ORDER BY p.creado_en DESC LIMIT 1;",
-        "options": {
-          "queryBatching": "independently",
-          "queryReplacement": "={{[ $json.messages[0].from ]}}"
-        }
-      },
-      "id": "582e2c8b-03ef-49e9-a750-e72bd448ad30",
-      "name": "DB - Obtener Pedido Activo Ubicación",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6,
-      "position": [
-        -752,
-        336
-      ],
-      "credentials": {
-        "postgres": {
-          "id": "EuEbLjm0Yx9snHhs",
-          "name": "Postgres account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "UPDATE pedidos\nSET ubicacion = jsonb_build_object(\n      'lat', $2,\n      'lng', $3\n    ),\n    estado = 'PENDIENTE_PAGO',\n    actualizado_en = now()\nWHERE id = $1;",
-        "options": {
-          "queryBatching": "independently",
-          "queryReplacement": "={{ [ $json.pedido_id, $json.messages[0].location.latitude, $json.messages[0].location.longitude ] }}"
-        }
-      },
-      "id": "98281566-5520-43c6-a157-6362bbbe5177",
-      "name": "DB - Actualizar Ubicación Pedido",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6,
-      "position": [
-        -624,
-        512
-      ],
       "credentials": {
         "postgres": {
           "id": "EuEbLjm0Yx9snHhs",
@@ -826,27 +762,27 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -960,
-        1120
+        -1728,
+        688
       ]
     },
     {
       "parameters": {
-        "jsCode": "const item = $input.first().json;\nconst articulos = item.articulos || [];\nconst lineas = articulos.map(a => `${a.cantidad}x ${a.nombre}`);\n\nlet ubicacionTexto = 'Sin ubicación (Pedido para recojo)';\nif (item.ubicacion && item.ubicacion.lat && item.ubicacion.lng) {\n  const url = `https://www.google.com/maps?q=${item.ubicacion.lat},${item.ubicacion.lng}`;\n  ubicacionTexto = `Ubicación: ${url}`;\n}\n\nitem.resumenStaff = `*Nuevo pedido ${item.tipo_entrega?.toUpperCase() || ''} (#${item.id})*\\n\\nCliente: ${item.nombre || ''} (${item.telefono})\\n\\n` +\n  lineas.join('\\n') +\n  `\\n\\nTotal: S/ ${Number(item.total || 0).toFixed(2)}\\n` +\n  ubicacionTexto +\n  `\\n\\nSe adjunta la captura del pago.`;\n\nreturn $input.all();"
+        "jsCode": "// Tomamos el item del input (que viene del IF -> True)\nconst data = $input.first().json;\n\n// 1. Formatear Ubicación\nlet ubicacionTexto = '🏪 Recojo en tienda';\nif (data.ubicacion && data.ubicacion.latitud && data.ubicacion.longitud) {\n  ubicacionTexto = `📍 http://googleusercontent.com/maps.google.com/?q=${data.ubicacion.latitud},${data.ubicacion.longitud}`;\n}\n\n// 2. Construir el mensaje para el staff\nconst mensajeStaff = `🧾 *NUEVO PEDIDO PAGADO (#${data.pedido_finalizado_id})*\n\n👤 *Cliente:* ${data.nombre_cliente || 'Sin nombre'}\n📱 *Teléfono:* ${data.telefono_cliente}\n\n🛒 *Detalle:*\n${data.resumen_pedido}\n\n${ubicacionTexto}\n\n💰 *Total Pagado:* S/ ${Number(data.total).toFixed(2)}\n\n📎 *Se adjunta comprobante:*`;\n\nreturn {\n  json: {\n    resumenStaff: mensajeStaff,\n    // Recuperamos el media_id del nodo inicial Set, ya que el SQL no lo devuelve\n    comprobante_media_id: $('Set - Datos Imagen Pago').first().json.media_id\n  }\n};"
       },
       "id": "efb60545-22d9-4138-a928-6746a641ea43",
       "name": "Code - Resumen Staff",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -944,
-        1584
+        -896,
+        928
       ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://graph.facebook.com/v21.0/' + $json.phoneNumberId + '/messages' }}",
+        "url": "={{ 'https://graph.facebook.com/v21.0/' + $('Set - Datos Imagen Pago').item.json.phoneNumberId + '/messages' }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "whatsAppApi",
         "sendHeaders": true,
@@ -860,7 +796,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  messaging_product: 'whatsapp',\n  to: $node[\"Configuración - Global\"].json.telefonoPedidos,\n  type: 'image',\n  image: {\n    id: $json.comprobante_media_id,\n    caption: $json.resumenStaff\n  }\n}) }}",
+        "jsonBody": "={{ JSON.stringify({\n  messaging_product: 'whatsapp',\n  to: $('Set - Datos Imagen Pago').item.json.telefono,\n  type: 'image',\n  image: {\n    id: $json.comprobante_media_id,\n    caption: $json.resumenStaff\n  }\n}) }}",
         "options": {}
       },
       "id": "fc8ae8aa-fb08-4239-b1ba-2769b6c6748f",
@@ -868,8 +804,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -736,
-        1584
+        -880,
+        1136
       ],
       "credentials": {
         "whatsAppApi": {
@@ -889,8 +825,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -144,
-        304
+        -32,
+        96
       ],
       "id": "226b0236-8a59-450d-bea4-8f1f9a8aa70a",
       "name": "DB - Obtener Pedido Activo",
@@ -905,54 +841,16 @@
     {
       "parameters": {
         "schemaType": "manual",
-        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"respuesta\": {\n      \"type\": \"string\",\n      \"description\": \"Texto en español amigable para el cliente, listo para enviar por WhatsApp.\"\n    },\n    \"accion\": {\n      \"type\": \"string\",\n      \"description\": \"Acción que debe ejecutar el workflow de n8n.\",\n      \"enum\": [\n        \"NONE\",\n        \"MOSTRAR_CARTA\",\n        \"INFO_PEDIDO\",\n        \"INFO_DELIVERY\",\n        \"ORDEN_DESCONOCIDA\",\n        \"ESPERAR_UBICACION\",\n        \"ESPERAR_PAGO\",\n        \"ORDEN_CONFIRMADA\"\n      ]\n    },\n    \"pedido_parseado\": {\n      \"type\": \"array\",\n      \"description\": \"Lista de líneas de pedido interpretadas a partir del mensaje del cliente.\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"producto_id\": {\n            \"type\": \"string\",\n            \"description\": \"ID del producto según la carta, por ejemplo 'taco_res_pollo'.\"\n          },\n          \"producto_nombre\": {\n            \"type\": \"string\",\n            \"description\": \"Nombre comercial del producto, por ejemplo 'Taco res + pollo'.\"\n          },\n          \"categoria_id\": {\n            \"type\": \"string\",\n            \"description\": \"ID de la categoría en la carta, por ejemplo 'el_clasico' o 'los_atrevidos'.\"\n          },\n          \"cantidad\": {\n            \"type\": \"integer\",\n            \"minimum\": 1,\n            \"description\": \"Cantidad de unidades solicitadas de este producto/variante.\"\n          },\n          \"variant_id\": {\n            \"type\": \"string\",\n            \"description\": \"ID de la variante exacta, por ejemplo 'taco_res_pollo__01_medium'.\"\n          },\n          \"variant_label\": {\n            \"type\": \"string\",\n            \"description\": \"Etiqueta de la variante, por ejemplo '01 Medium', '02 Small' o 'Tamaño único'.\"\n          },\n          \"size_code\": {\n            \"type\": \"string\",\n            \"description\": \"Código de tamaño según la carta, por ejemplo '01_medium', '02_small', 'unico'.\"\n          },\n          \"precio_unitario\": {\n            \"type\": \"number\",\n            \"description\": \"Precio unitario en la moneda configurada para esa variante.\"\n          },\n          \"subtotal\": {\n            \"type\": \"number\",\n            \"description\": \"Precio_unitario * cantidad.\"\n          }\n        },\n        \"required\": [\n          \"producto_id\",\n          \"cantidad\",\n          \"variant_id\",\n          \"size_code\",\n          \"precio_unitario\",\n          \"subtotal\"\n        ]\n      }\n    },\n    \"total\": {\n      \"type\": \"number\",\n      \"description\": \"Total del pedido sumando todos los subtotales.\"\n    },\n    \"resumen_pedido\": {\n      \"type\": \"string\",\n      \"description\": \"Resumen en texto del pedido, línea por línea, listo para mostrar al cliente o staff.\"\n    },\n    \"errores\": {\n      \"type\": \"array\",\n      \"description\": \"Mensajes de error o advertencia (por ejemplo, productos no encontrados o dudas de interpretación).\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    }\n  },\n  \"required\": [\n    \"respuesta\",\n    \"accion\",\n    \"pedido_parseado\",\n    \"total\"\n  ]\n}\n"
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"respuesta\": {\n      \"type\": \"string\",\n      \"description\": \"Texto final para el usuario. Debe ser amable y coherente con el estado actual.\"\n    },\n    \"accion\": {\n      \"type\": \"string\",\n      \"description\": \"Determinante para el flujo de n8n. Define el siguiente paso lógico.\",\n      \"enum\": [\n        \"NONE\",\n        \"MOSTRAR_CARTA\",\n        \"INFO_PEDIDO\",\n        \"INFO_DELIVERY\",\n        \"ORDEN_DESCONOCIDA\",\n        \"ESPERAR_UBICACION\",\n        \"ESPERAR_PAGO\",\n        \"SOLICITAR_CONFIRMACION\"\n      ]\n    },\n    \"pedido_parseado\": {\n      \"type\": \"array\",\n      \"description\": \"Array de objetos. Solo se llena si se identifican productos válidos en el mensaje del usuario.\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"producto_id\": {\n            \"type\": \"string\",\n            \"description\": \"ID EXACTO del producto encontrado en el menú. Debes aplicar la lógica de emparejamiento semántico: si el usuario pide ingredientes combinados (X + Y), selecciona el ID del producto combinado correspondiente.\"\n          },\n          \"producto_nombre\": {\n            \"type\": \"string\",\n            \"description\": \"Nombre oficial del producto según la carta.\"\n          },\n          \"categoria_id\": {\n            \"type\": \"string\",\n            \"description\": \"ID de la categoría a la que pertenece el producto.\"\n          },\n          \"cantidad\": {\n            \"type\": \"integer\",\n            \"minimum\": 1,\n            \"description\": \"Número de unidades solicitadas.\"\n          },\n          \"variant_id\": {\n            \"type\": \"string\",\n            \"description\": \"ID de la variante seleccionada. Si el usuario no especifica, usa la variante por defecto del menú.\"\n          },\n          \"variant_label\": {\n            \"type\": \"string\",\n            \"description\": \"Nombre visible de la variante (ej: '01 Medium').\"\n          },\n          \"size_code\": {\n            \"type\": \"string\",\n            \"description\": \"Código técnico del tamaño (ej: '01_medium').\"\n          },\n          \"precio_unitario\": {\n            \"type\": \"number\",\n            \"description\": \"Precio extraído directamente del menú para esa variante.\"\n          },\n          \"subtotal\": {\n            \"type\": \"number\",\n            \"description\": \"Cálculo matemático: precio_unitario * cantidad.\"\n          }\n        },\n        \"required\": [\n          \"producto_id\",\n          \"producto_nombre\",\n          \"cantidad\",\n          \"variant_id\",\n          \"size_code\",\n          \"precio_unitario\",\n          \"subtotal\"\n        ]\n      }\n    },\n    \"total\": {\n      \"type\": \"number\",\n      \"description\": \"Suma total monetaria de todos los items del pedido_parseado. Si no hay pedido, es 0.\"\n    },\n    \"resumen_pedido\": {\n      \"type\": \"string\",\n      \"description\": \"Bloque de texto formateado (con saltos de línea) describiendo el pedido completo y el total. Listo para ser leído por humanos.\"\n    },\n    \"errores\": {\n      \"type\": \"array\",\n      \"description\": \"Lista de strings con problemas detectados (ej: 'Producto X no encontrado', 'Falta elegir tamaño'). Vacío si todo está bien.\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    }\n  },\n  \"required\": [\n    \"respuesta\",\n    \"accion\",\n    \"pedido_parseado\",\n    \"total\",\n    \"resumen_pedido\",\n    \"errores\"\n  ]\n}"
       },
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.3,
       "position": [
-        304,
-        848
+        416,
+        576
       ],
       "id": "d7b50e57-a7ff-49ad-9d95-bf0e599155a9",
       "name": "Structured Output Parser"
-    },
-    {
-      "parameters": {
-        "descriptionType": "manual",
-        "toolDescription": "Obtiene el json de la carta desde github",
-        "resource": "file",
-        "operation": "get",
-        "owner": {
-          "__rl": true,
-          "value": "marcksdbgg",
-          "mode": "name"
-        },
-        "repository": {
-          "__rl": true,
-          "value": "m8-apps",
-          "mode": "name"
-        },
-        "filePath": "Restaurant/resources/carta.json",
-        "asBinaryProperty": false,
-        "additionalParameters": {
-          "reference": "main"
-        }
-      },
-      "type": "n8n-nodes-base.githubTool",
-      "typeVersion": 1.1,
-      "position": [
-        400,
-        656
-      ],
-      "id": "3f8147af-d4cf-43eb-95db-6b9f38a4935b",
-      "name": "Obtener Carta",
-      "webhookId": "6bbb02d9-9ee9-4ad5-becc-72fc25b2e227",
-      "credentials": {
-        "githubApi": {
-          "id": "zv1NwM18dIrEb3IE",
-          "name": "GitHub account"
-        }
-      }
     },
     {
       "parameters": {
@@ -1021,30 +919,6 @@
                       "operation": "equals"
                     },
                     "leftValue": "={{ $json.output.accion }}",
-                    "rightValue": "INFO_DELIVERY",
-                    "id": "64aa0f28-bf73-434c-a9e4-eec32fd94d20"
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "InfoDelivery"
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 2
-                },
-                "conditions": [
-                  {
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    },
-                    "leftValue": "={{ $json.output.accion }}",
                     "rightValue": "ORDEN_DESCONOCIDA",
                     "id": "2bb7f090-af22-4aa0-89ea-dca23739b915"
                   }
@@ -1066,7 +940,7 @@
                   {
                     "id": "3f10c068-442d-4eda-a704-43edb83b9a0f",
                     "leftValue": "={{ $json.output.accion }}",
-                    "rightValue": "ORDEN_CONFIRMADA",
+                    "rightValue": "SOLICITAR_CONFIRMACION",
                     "operator": {
                       "type": "string",
                       "operation": "equals",
@@ -1077,7 +951,7 @@
                 "combinator": "and"
               },
               "renameOutput": true,
-              "outputKey": "OrdenConfirmada"
+              "outputKey": "SolicitarConfirmacion"
             },
             {
               "conditions": {
@@ -1202,8 +1076,8 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.3,
       "position": [
-        1280,
-        832
+        704,
+        1136
       ],
       "id": "31f5d913-dd3f-4dac-9ad1-3dcb92e9bd84",
       "name": "Switch - Tipo Pedido"
@@ -1216,19 +1090,19 @@
               "id": "m1",
               "name": "telefono",
               "type": "string",
-              "value": "={{ $json.telefono }}"
+              "value": "={{ $('Set - Datos Cliente').item.json.telefono }}"
             },
             {
               "id": "m2",
               "name": "phoneNumberId",
               "type": "string",
-              "value": "={{ $json.phoneNumberId }}"
+              "value": "={{ $('Set - Datos Cliente').item.json.metadata.metadata.phone_number_id }}"
             },
             {
               "id": "m3",
               "name": "mensaje",
               "type": "string",
-              "value": "=={{ \"✅ ¡Tu pedido ha sido confirmado para recoger en tienda!\\\\n\\\\n\" + $json.resumen_pedido + \"\\\\n\\\\nPuedes pagar con efectivo, tarjeta, Yape o Plin al momento de retirar tu orden.\\\\n\\\\n¡Te esperamos pronto!\" }}"
+              "value": "=\"✅ ¡Tu pedido ha sido confirmado para recoger en tienda!\" \n{{ $('Switch - Tipo Pedido').item.json.resumen_pedido }}\nPuedes pagar con efectivo, tarjeta, Yape o Plin al momento de retirar tu orden\n¡Te esperamos pronto!\""
             }
           ]
         },
@@ -1239,8 +1113,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1696,
-        960
+        1120,
+        1248
       ]
     },
     {
@@ -1268,8 +1142,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1888,
-        960
+        1312,
+        1248
       ],
       "credentials": {
         "whatsAppApi": {
@@ -1303,8 +1177,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1696,
-        336
+        1312,
+        800
       ],
       "credentials": {
         "whatsAppApi": {
@@ -1338,8 +1212,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -176,
-        496
+        -288,
+        320
       ],
       "credentials": {
         "whatsAppApi": {
@@ -1373,8 +1247,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -16,
-        112
+        48,
+        -144
       ]
     },
     {
@@ -1414,19 +1288,19 @@
               "id": "m1",
               "name": "telefono",
               "type": "string",
-              "value": "={{ $node[\"Set - Datos Cliente\"].json.telefono }}"
+              "value": "={{ $('Set - Datos Botón WhatsApp').item.json.telefono }}"
             },
             {
               "id": "m2",
               "name": "phoneNumberId",
               "type": "string",
-              "value": "={{ $node[\"Set - Datos Cliente\"].json.metadata.metadata.phone_number_id }}"
+              "value": "={{ $('Set - Datos Botón WhatsApp').item.json.phoneNumberId }}"
             },
             {
               "id": "m3",
               "name": "mensaje",
               "type": "string",
-              "value": "=={{ \"¡Perfecto! Tu pedido para delivery es:\\\\n\\\\n\" + $json.resumen_pedido + \"\\\\n\\\\nPara coordinar la entrega, por favor, responde a este mensaje con:\\\\n\\\\n- Tu nombre completo.\\n- Una referencia para el repartidor (ej: \\\"casa azul de dos pisos\\\").\\\\n- Un teléfono de contacto adicional (opcional).\" }}"
+              "value": "=¡Perfecto! Tu pedido para delivery es:\n\n{{ $('Switch - Tipo Pedido').item.json.resumen_pedido }}\n\nPara coordinar la entrega, por favor, responde a este mensaje con:\n\n- Tu nombre completo.\n- Una referencia para el repartidor (ej: \"casa azul de dos pisos\").\n- Un teléfono de contacto adicional (opcional).`"
             }
           ]
         },
@@ -1437,8 +1311,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1696,
-        720
+        1120,
+        1008
       ]
     },
     {
@@ -1446,22 +1320,22 @@
         "assignments": {
           "assignments": [
             {
-              "id": "m1",
+              "id": "5391bb13-2ef3-4d7d-b51a-29f1bf83aca2",
               "name": "telefono",
-              "type": "string",
-              "value": "={{ $json.telefono }}"
+              "value": "={{ $('Set - Datos Cliente').item.json.telefono }}",
+              "type": "string"
             },
             {
               "id": "m2",
               "name": "phoneNumberId",
               "type": "string",
-              "value": "={{ $json.phoneNumberId }}"
+              "value": "={{ $('Set - Datos Cliente').item.json.metadata.metadata.phone_number_id }}"
             },
             {
               "id": "m3",
               "name": "mensaje",
               "type": "string",
-              "value": "=Gracias. Ahora, por favor, comparte tu ubicación exacta.\\n\\nToca el icono del clip 📎 en WhatsApp, selecciona \"Ubicación\" y luego pulsa en \"Enviar mi ubicación actual\"."
+              "value": "=Gracias. Ahora, por favor, comparte tu ubicación exacta.\nToca el icono del clip 📎 en WhatsApp, selecciona \"Ubicación\" y luego pulsa en \"Enviar mi ubicación actual\"."
             }
           ]
         },
@@ -1472,8 +1346,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1104,
-        336
+        1136,
+        800
       ]
     },
     {
@@ -1484,19 +1358,19 @@
               "id": "m1",
               "name": "telefono",
               "type": "string",
-              "value": "={{ $json.telefono }}"
+              "value": "={{ $('WhatsApp Trigger').item.json.contacts[0].wa_id }}"
             },
             {
               "id": "m2",
               "name": "phoneNumberId",
               "type": "string",
-              "value": "={{ $json.phoneNumberId }}"
+              "value": "={{ $('WhatsApp Trigger').item.json.metadata.phone_number_id }}"
             },
             {
               "id": "m3",
               "name": "mensaje",
               "type": "string",
-              "value": "=¡Ya casi terminamos! Solo falta el último paso.\\n\\nRealiza el pago total por *Yape* o *Plin* al número *{{ $node[\"Configuración - Global\"].json.telefonoPedidos }}* y envíame la *captura de pantalla completa* del comprobante para confirmar tu pedido."
+              "value": "=¡Ya casi terminamos! Solo falta el último paso.\nRealiza el pago total por *Yape* o *Plin* al número *987654321* y envíame la *captura de pantalla completa* del comprobante para confirmar tu pedido."
             }
           ]
         },
@@ -1507,8 +1381,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -368,
-        496
+        -448,
+        208
       ]
     },
     {
@@ -1528,8 +1402,8 @@
       "maxTries": 2,
       "waitBetweenTries": 1000,
       "position": [
-        -560,
-        128
+        -512,
+        0
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -1542,14 +1416,14 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE pedidos\nSET estado = 'PENDIENTE_DATOS_DELIVERY'\nWHERE id = {{ $json.pedido_id }};",
+        "query": "UPDATE pedidos\nSET estado = 'PENDIENTE_DATOS_DELIVERY'\nWHERE id = {{ $json.id }};",
         "options": {}
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1504,
-        720
+        928,
+        1008
       ],
       "id": "39ee5afa-3ead-4f36-a362-08415ab2a3e4",
       "name": "DB - Actualizar Estado a PENDIENTE_DATOS_DELIVERY",
@@ -1572,8 +1446,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1504,
-        960
+        928,
+        1248
       ],
       "id": "e36045c8-bb95-4fad-8758-c7744bfc2032",
       "name": "DB - Actualizar Estado a COMPLETO",
@@ -1587,14 +1461,14 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE pedidos\nSET estado = 'PENDIENTE_UBICACION'\nWHERE id = {{ $json.pedido_id }}; -- Asegúrate de tener el ID del pedido del nodo anterior",
+        "query": "UPDATE pedidos\nSET estado = 'PENDIENTE_UBICACION'\nWHERE id = {{ $('DB - Obtener Pedido Activo').item.json.id }}",
         "options": {}
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1344,
-        352
+        944,
+        800
       ],
       "id": "6dd14040-f070-4c03-84ad-2e38c4393f56",
       "name": "DB - Actualizar Estado a PENDIENTE_UBICACION",
@@ -1608,34 +1482,10 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE pedidos\nSET estado = 'PENDIENTE_PAGO'\nWHERE id = {{ $json.pedido_id }};",
+        "query": "WITH pedido_pendiente AS (\n    -- 1. Buscamos el pedido ACTIVO que está esperando pago\n    SELECT p.id\n    FROM pedidos p\n    JOIN clientes c ON p.cliente_id = c.id\n    WHERE c.telefono = $1 \n      AND p.estado = 'PENDIENTE_PAGO' -- CRÍTICO: Solo si espera pago\n    ORDER BY p.creado_en DESC\n    LIMIT 1\n)\nUPDATE pedidos\nSET \n    -- Solo actualizamos los metadatos con la foto, NO el estado\n    metadatos = COALESCE(metadatos, '{}'::jsonb) || jsonb_build_object('comprobante_media_id', $2),\n    actualizado_en = now()\nFROM pedido_pendiente\nWHERE pedidos.id = pedido_pendiente.id\nRETURNING pedidos.id as pedido_encontrado_id;",
         "options": {
           "queryBatching": "independently",
-          "queryReplacement": "valor1, etc"
-        }
-      },
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6,
-      "position": [
-        -496,
-        352
-      ],
-      "id": "0a0422a6-c707-4020-aee0-18c182af029f",
-      "name": "DB - Actualizar Estado a PENDIENTE_PAGO",
-      "credentials": {
-        "postgres": {
-          "id": "EuEbLjm0Yx9snHhs",
-          "name": "Postgres account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "WITH pedido_a_completar AS (\n  SELECT p.id, c.nombre, c.telefono\n  FROM pedidos p\n  JOIN clientes c ON p.cliente_id = c.id\n  WHERE c.telefono = $1 AND p.estado = 'PENDIENTE_PAGO'\n  ORDER BY p.creado_en DESC\n  LIMIT 1\n)\nUPDATE pedidos\nSET\n  estado = 'COMPLETO',\n  metadatos = metadatos || jsonb_build_object('comprobante_media_id', $2)\nWHERE id = (SELECT id FROM pedido_a_completar)\nRETURNING\n  (SELECT id FROM pedido_a_completar) as id,\n  (SELECT nombre FROM pedido_a_completar) as nombre_cliente,\n  (SELECT telefono FROM pedido_a_completar) as telefono_cliente,\n  resumen_pedido,\n  total,\n  ubicacion,\n  estado as nuevo_estado;",
-        "options": {
-          "queryBatching": "independently",
-          "queryReplacement": "=={{ [ $json.telefono, $json.media_id ] }}"
+          "queryReplacement": "={{ $json.telefono }}, {{ $json.media_id }}"
         }
       },
       "id": "4a758010-3919-4e0e-b74f-afe94c2d9716",
@@ -1643,8 +1493,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -944,
-        1360
+        -1520,
+        688
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -1682,24 +1532,11 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -288,
-        128
+        -304,
+        0
       ],
       "id": "26fa9fad-b09f-4313-8416-9d65029ec0ad",
       "name": "If"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Obtener el mensaje original del usuario desde el Trigger o el Switch\n// Ajusta 'Switch - Tipo de mensaje' si tu nodo anterior se llama diferente\nconst originalMsg = $('Set - Datos Cliente').first().json.primerMensaje || $('WhatsApp Trigger').first().json.messages[0].text.body;\nconst phone = $('Set - Datos Cliente').first().json.telefono;\n\n// Obtener resultado de la base de datos (si existe)\nconst dbResult = $input.first() ? $input.first().json : {};\n\n// Determinar estado\nlet orderState = 'NONE';\nlet prevSummary = '';\n\n// Si la base de datos devolvió un ID de pedido, usamos esos datos\nif (dbResult.id && dbResult.estado) {\n  orderState = dbResult.estado;\n  prevSummary = dbResult.resumen_pedido || '';\n}\n\n// Construimos el objeto JSON EXACTO que tu System Prompt pide\nconst aiInputObject = {\n  user_message: originalMsg,\n  order_state: orderState,\n  phone: phone,\n  previous_summary: prevSummary,\n  // El menú no es necesario inyectarlo aquí si usas la herramienta 'Obtener Carta',\n  // pero el prompt dice que puede ser opcional.\n  menu: []\n};\n\n// Devolvemos este objeto como una cadena JSON (string) para que entre al Prompt\nreturn {\n  json: {\n    ai_prompt_input: JSON.stringify(aiInputObject)\n  }\n};"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        32,
-        304
-      ],
-      "id": "7c1eded2-50ff-45c3-8ef9-1c20081bf5fa",
-      "name": "Preparar Contexto"
     },
     {
       "parameters": {
@@ -1727,7 +1564,7 @@
       "typeVersion": 4.2,
       "position": [
         368,
-        1472
+        1024
       ],
       "credentials": {
         "whatsAppApi": {
@@ -1768,7 +1605,7 @@
       "typeVersion": 3.4,
       "position": [
         160,
-        1472
+        1024
       ]
     },
     {
@@ -1826,8 +1663,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1008,
-        160
+        944,
+        176
       ]
     },
     {
@@ -1858,8 +1695,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1200,
-        80
+        1104,
+        176
       ],
       "id": "8405107c-a5b4-4b86-9885-a2c7253f858e",
       "name": "If - Hay Errores"
@@ -1889,8 +1726,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1888,
-        720
+        1312,
+        1008
       ],
       "credentials": {
         "whatsAppApi": {
@@ -1924,8 +1761,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1424,
-        160
+        1296,
+        -32
       ],
       "credentials": {
         "whatsAppApi": {
@@ -1936,13 +1773,13 @@
     },
     {
       "parameters": {
-        "jsCode": "// 1) Obtener y parsear la carta desde el nodo anterior (GitHub)\nconst inputItem = $input.first();\nlet cartaRaw = inputItem.json;\n\n// El GitHub node devuelve normalmente el contenido en `data` como string\nlet cartaJson;\ntry {\n  const data = typeof cartaRaw.data === 'string' ? cartaRaw.data : JSON.stringify(cartaRaw.data || cartaRaw);\n  cartaJson = JSON.parse(data);\n} catch (e) {\n  throw new Error('No se pudo parsear carta.json desde GitHub: ' + e.message);\n}\n\nconst categories = (cartaJson.menu && cartaJson.menu.categories) || [];\nconst currencySymbol =\n  (cartaJson.currency && cartaJson.currency.symbol) ? cartaJson.currency.symbol : 'S/';\n\n// 2) Obtener el output estructurado del LLM\nconst aiOutput = $('AI Agent').first().json.output || {};\n\nconst pedidoLlm = Array.isArray(aiOutput.pedido_parseado) ? aiOutput.pedido_parseado : [];\nlet errores = Array.isArray(aiOutput.errores) ? [...aiOutput.errores] : [];\n\nconst itemsValidados = [];\n\n// Helper: buscar un producto + variante en la carta\nfunction buscarVariant(productoId, variantId) {\n  for (const cat of categories) {\n    const items = cat.items || [];\n    for (const item of items) {\n      if (item.id === productoId) {\n        const variants = item.variants || [];\n        for (const v of variants) {\n          if (v.id === variantId) {\n            return {\n              categoria_id: cat.id,\n              producto_nombre: item.name,\n              variant_label: v.label,\n              size_code: v.size_code,\n              precio: Number(v.price)\n            };\n          }\n        }\n      }\n    }\n  }\n  return null;\n}\n\n// 3) Validar cada línea del pedido_parseado\npedidoLlm.forEach((linea, index) => {\n  const lineaIdx = index + 1;\n\n  const productoId = linea?.producto_id;\n  const variantId = linea?.variant_id;\n  let cantidad = Number(linea?.cantidad);\n\n  if (!productoId || !variantId) {\n    errores.push(`Línea ${lineaIdx}: falta producto_id o variant_id.`);\n    return;\n  }\n\n  if (!Number.isInteger(cantidad) || cantidad < 1) {\n    errores.push(`Línea ${lineaIdx}: cantidad inválida (${linea.cantidad}).`);\n    return;\n  }\n\n  const variantInfo = buscarVariant(productoId, variantId);\n  if (!variantInfo) {\n    errores.push(\n      `Línea ${lineaIdx}: el producto/variante (${productoId}, ${variantId}) no existe en la carta.`\n    );\n    return;\n  }\n\n  // Validar size_code\n  if (linea.size_code && linea.size_code !== variantInfo.size_code) {\n    errores.push(\n      `Línea ${lineaIdx}: size_code '${linea.size_code}' no coincide con la carta ('${variantInfo.size_code}'). Se usará el de la carta.`\n    );\n  }\n\n  const precioUnitario = variantInfo.precio;\n  const subtotal = Number((precioUnitario * cantidad).toFixed(2));\n\n  itemsValidados.push({\n    producto_id: productoId,\n    producto_nombre: variantInfo.producto_nombre,\n    categoria_id: variantInfo.categoria_id,\n    cantidad,\n    variant_id: variantId,\n    variant_label: variantInfo.variant_label,\n    size_code: variantInfo.size_code,\n    precio_unitario: precioUnitario,\n    subtotal\n  });\n});\n\n// 4) Recalcular total y comparar con el total del modelo\nlet totalCalculado = Number(\n  itemsValidados.reduce((acc, it) => acc + (Number(it.subtotal) || 0), 0).toFixed(2)\n);\n\nif (typeof aiOutput.total === 'number' && !Number.isNaN(aiOutput.total)) {\n  const diff = Math.abs(aiOutput.total - totalCalculado);\n  if (diff > 0.01) {\n    errores.push(\n      `El total del modelo (${currencySymbol} ${aiOutput.total.toFixed(2)}) ` +\n      `no coincide con la suma de ítems (${currencySymbol} ${totalCalculado.toFixed(2)}). ` +\n      `Se usará el total calculado.`\n    );\n  }\n}\n\n// Si por alguna razón no hay ítems válidos, marcamos error\nif (itemsValidados.length === 0) {\n  errores.push('No se pudo validar ninguna línea del pedido contra la carta.');\n  totalCalculado = 0;\n}\n\n// 5) Reconstruir un resumen de pedido seguro\nlet resumen = '';\nif (itemsValidados.length > 0) {\n  const lineasResumen = itemsValidados.map((it) =>\n    `${it.cantidad}x ${it.producto_nombre} (${it.variant_label}) = ` +\n    `${currencySymbol} ${Number(it.subtotal).toFixed(2)}`\n  );\n  resumen =\n    lineasResumen.join('\\n') +\n    `\\nTotal: ${currencySymbol} ${totalCalculado.toFixed(2)}`;\n}\n\n// 6) Preparar la salida para el siguiente nodo (DB - Actualizar Pedido Detalle)\n// Mantenemos accion y respuesta del modelo (ya se usaron para el mensaje al cliente)\nconst salida = {\n  accion: aiOutput.accion || 'ORDEN_CONFIRMADA',\n  respuesta: aiOutput.respuesta || '',\n  resumen_pedido: resumen,\n  errores,\n  total: totalCalculado,\n  pedido_parseado: itemsValidados\n};\n\n// Devolvemos el item con este json\nconst outItem = { json: salida };\nreturn [outItem];\n"
+        "jsCode": "// 1) Obtener y parsear la carta (con soporte Base64 robusto)\nconst inputItem = $input.first();\nconst inputJson = inputItem.json;\nconst base64Content = inputJson.content || (inputJson.data && inputJson.data.content) || inputJson.data;\n\nlet cartaJson;\ntry {\n  if (base64Content && typeof base64Content === 'string') {\n      const asciiContent = Buffer.from(base64Content, 'base64').toString('utf-8');\n      cartaJson = JSON.parse(asciiContent);\n  } else {\n      cartaJson = typeof inputJson.data === 'object' ? inputJson.data : {};\n  }\n} catch (e) {\n  throw new Error('Error crítico parseando carta.json: ' + e.message);\n}\n\nconst categories = (cartaJson.menu && cartaJson.menu.categories) || [];\nconst currencySymbol = (cartaJson.currency && cartaJson.currency.symbol) ? cartaJson.currency.symbol : 'S/';\n\n// 2) Obtener el output del AI Agent\nconst aiOutput = $('AI Agent').first().json.output || {};\nconst pedidoLlm = Array.isArray(aiOutput.pedido_parseado) ? aiOutput.pedido_parseado : [];\nlet errores = Array.isArray(aiOutput.errores) ? [...aiOutput.errores] : [];\nconst itemsValidados = [];\n\n// Helper: Búsqueda de variante\nfunction buscarVariant(productoId, variantId) {\n  for (const cat of categories) {\n    const items = cat.items || [];\n    for (const item of items) {\n      if (item.id === productoId) {\n        const variants = item.variants || [];\n        for (const v of variants) {\n          if (v.id === variantId || v.id === variantId.trim()) {\n            return {\n              categoria_id: cat.id,\n              producto_nombre: item.name,\n              variant_label: v.label,\n              size_code: v.size_code,\n              precio: Number(v.price)\n            };\n          }\n        }\n      }\n    }\n  }\n  return null;\n}\n\n// 3) Validar y construir items\npedidoLlm.forEach((linea, index) => {\n  const lineaIdx = index + 1;\n  const productoId = linea?.producto_id;\n  const variantId = linea?.variant_id;\n  let cantidad = Number(linea?.cantidad);\n\n  if (!productoId || !variantId) {\n    errores.push(`Línea ${lineaIdx}: Faltan datos.`);\n    return;\n  }\n  const variantInfo = buscarVariant(productoId, variantId);\n  if (!variantInfo) {\n    errores.push(`Línea ${lineaIdx}: Producto no encontrado en carta.`);\n    return;\n  }\n\n  const precioUnitario = variantInfo.precio;\n  const subtotal = Number((precioUnitario * cantidad).toFixed(2));\n\n  itemsValidados.push({\n    producto_id: productoId,\n    producto_nombre: variantInfo.producto_nombre,\n    categoria_id: variantInfo.categoria_id,\n    cantidad,\n    variant_id: variantId,\n    variant_label: variantInfo.variant_label,\n    size_code: variantInfo.size_code,\n    precio_unitario: precioUnitario,\n    subtotal\n  });\n});\n\n// 4) Calcular totales\nlet totalCalculado = Number(itemsValidados.reduce((acc, it) => acc + it.subtotal, 0).toFixed(2));\n\nlet resumen = '';\nif (itemsValidados.length > 0) {\n  const lineasResumen = itemsValidados.map((it) =>\n    `• ${it.cantidad}x ${it.producto_nombre} (${it.variant_label})`\n  );\n  resumen = lineasResumen.join('\\n') + `\\n\\n*Total: ${currencySymbol} ${totalCalculado.toFixed(2)}*`;\n}\n\n// 5) SALIDA PREPARADA PARA SQL (Strings Listos)\n// Convertimos los objetos complejos a String aquí para evitar errores en el nodo de Postgres\nreturn {\n  json: {\n    accion: aiOutput.accion || 'ORDEN_CONFIRMADA',\n    respuesta: aiOutput.respuesta,\n    resumen_pedido: resumen,\n    total: totalCalculado,\n    \n    // PREPARADOS PARA SQL:\n    sql_errores_json: JSON.stringify(errores),\n    sql_items_json: JSON.stringify(itemsValidados)\n  }\n};"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        816,
-        960
+        1152,
+        592
       ],
       "id": "e4572c8f-3cf8-4bd8-9c79-f2438ced1a35",
       "name": "Validar y armar pedido final"
@@ -1968,8 +1805,8 @@
       "type": "n8n-nodes-base.github",
       "typeVersion": 1.1,
       "position": [
-        816,
-        720
+        944,
+        592
       ],
       "id": "362e5c5a-ddc7-4ea0-9906-362062109633",
       "name": "GH - Obtener Carta",
@@ -2036,8 +1873,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        960,
-        544
+        944,
+        400
       ]
     },
     {
@@ -2065,8 +1902,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1152,
-        544
+        1136,
+        400
       ],
       "credentials": {
         "whatsAppApi": {
@@ -2086,8 +1923,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        96,
-        1120
+        -304,
+        1264
       ],
       "id": "f9772d16-3014-4f53-beea-c158c97414d7",
       "name": "Eliminar Pedido",
@@ -2123,8 +1960,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        272,
-        1120
+        -128,
+        1264
       ],
       "credentials": {
         "whatsAppApi": {
@@ -2132,9 +1969,542 @@
           "name": "WhatsApp account"
         }
       }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "value": "marcksdbgg",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "m8-apps",
+          "mode": "name"
+        },
+        "filePath": "Restaurant/resources/carta.json",
+        "asBinaryProperty": false,
+        "additionalParameters": {}
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        176,
+        96
+      ],
+      "id": "01c47f5b-22bb-4857-8065-1a429f03e357",
+      "name": "GH - Obtener Carta1",
+      "webhookId": "9d4e9dca-000e-4173-84ec-3969698bcae7",
+      "credentials": {
+        "githubApi": {
+          "id": "zv1NwM18dIrEb3IE",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Nodo Code después de GitHub y antes de Preparar Contexto\nconst item = $input.first().json;\n\n// La API de GitHub devuelve el contenido en base64 en el campo 'content'\n// A veces viene en 'data.content' dependiendo de la versión del nodo\nconst base64Content = item.data ? item.data.content : item.content;\n\nif (base64Content) {\n  const asciiContent = Buffer.from(base64Content, 'base64').toString('utf-8');\n  const menuJson = JSON.parse(asciiContent);\n  \n  return {\n    json: {\n      menu_limpio: menuJson.menu // Pasamos solo la parte del menú\n    }\n  };\n}\n\nreturn { json: { menu_limpio: [] } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        368,
+        96
+      ],
+      "id": "fa3166a7-b154-45d6-87d8-3d4977ca39c6",
+      "name": "JS - Parsear Carta"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Obtener datos del usuario (Cliente)\nconst clienteNode = $('Set - Datos Cliente').first();\nconst originalMsg = clienteNode.json.primerMensaje || $('WhatsApp Trigger').first().json.messages[0].text.body;\nconst phone = clienteNode.json.telefono;\n\n// 2. Obtener resultado de la Base de Datos\n// IMPORTANTE: Lo buscamos por nombre específico porque el input directo viene del JS de la carta\nlet orderState = 'NONE';\nlet prevSummary = '';\n\ntry {\n  // Buscamos el nodo DB explícitamente\n  const dbNode = $('DB - Obtener Pedido Activo').first();\n  if (dbNode && dbNode.json && dbNode.json.id) {\n      const dbResult = dbNode.json;\n      orderState = dbResult.estado || 'NONE';\n      prevSummary = dbResult.resumen_pedido || '';\n  }\n} catch (error) {\n  // Si falla o no hay pedido previo, se queda en NONE\n  console.log('No se encontraron datos previos de DB o el nodo no se ejecutó aún');\n}\n\n// 3. Recuperar el menú limpio del nodo JS (Corregido el nombre)\n// AQUÍ ESTABA EL ERROR: El nombre debe coincidir exactamente con el nodo en el lienzo\nlet menuData = [];\ntry {\n    // Usamos el nombre exacto que tienes en la imagen: \"JS - Parsear Carta\"\n    menuData = $('JS - Parsear Carta').first().json.menu_limpio || [];\n} catch (e) {\n    console.log('Error recuperando el menú del nodo JS - Parsear Carta');\n}\n\n// 4. Construimos el objeto para el AI Agent\nconst aiInputObject = {\n  user_message: originalMsg,\n  order_state: orderState,\n  phone: phone,\n  previous_summary: prevSummary,\n  menu: menuData\n};\n\n// 5. Retorno final\nreturn {\n  json: {\n    ai_prompt_input: JSON.stringify(aiInputObject)\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -48,
+        304
+      ],
+      "id": "7c1eded2-50ff-45c3-8ef9-1c20081bf5fa",
+      "name": "JS - Preparar Contexto"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH pedido_pendiente AS (\n    -- 1. Buscamos si existe un pedido EXACTO esperando ubicación para este teléfono\n    SELECT p.id\n    FROM pedidos p\n    JOIN clientes c ON p.cliente_id = c.id\n    WHERE c.telefono = $1 \n      AND p.estado = 'PENDIENTE_UBICACION'\n    LIMIT 1\n)\nUPDATE pedidos\nSET \n    ubicacion = jsonb_build_object(\n        'latitud', $2::numeric,\n        'longitud', $3::numeric\n    ),\n    estado = 'PENDIENTE_PAGO',\n    actualizado_en = now()\nFROM pedido_pendiente\nWHERE pedidos.id = pedido_pendiente.id\nRETURNING pedidos.id as pedido_actualizado_id;",
+        "options": {
+          "queryBatching": "independently",
+          "queryReplacement": "={{ [\n  $json.messages[0].from, \n  $json.messages[0].location.latitude, \n  $json.messages[0].location.longitude \n] }}"
+        }
+      },
+      "id": "582e2c8b-03ef-49e9-a750-e72bd448ad30",
+      "name": "DB - Procesar Ubicación",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -800,
+        384
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "EuEbLjm0Yx9snHhs",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "14e57485-d7f7-4268-a83f-5c8b970901ce",
+              "leftValue": "={{ $json.pedido_actualizado_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -672,
+        240
+      ],
+      "id": "87666a0e-726e-4222-9789-aa2de5019f96",
+      "name": "If - Pedido Encontrado"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "m1",
+              "name": "telefono",
+              "type": "string",
+              "value": "={{ $('WhatsApp Trigger').item.json.contacts[0].wa_id }}"
+            },
+            {
+              "id": "m2",
+              "name": "phoneNumberId",
+              "type": "string",
+              "value": "={{ $('WhatsApp Trigger').item.json.metadata.phone_number_id }}"
+            },
+            {
+              "id": "m3",
+              "name": "mensaje",
+              "type": "string",
+              "value": "=He recibido una ubicación, pero no tengo ningún pedido abierto esperando datos de entrega en este momento. Por favor, escribe 'Hola' si quieres iniciar un pedido nuevo."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3b586a8c-dbfa-4d56-ad7e-9c8c921ea0f6",
+      "name": "Set - Mensaje Ubicacion Inesperada",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -448,
+        416
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e20a2ab0-c716-4196-b820-ec088ba9f546",
+              "leftValue": "={{ $json.pedido_encontrado_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1344,
+        688
+      ],
+      "id": "b8ec1700-35eb-4f98-82a4-96d240b3f775",
+      "name": "If - Pedido Pagado Encontrado"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "m1",
+              "name": "telefono",
+              "type": "string",
+              "value": "={{ $('WhatsApp Trigger').item.json.contacts[0].wa_id }}"
+            },
+            {
+              "id": "m2",
+              "name": "phoneNumberId",
+              "type": "string",
+              "value": "={{ $('WhatsApp Trigger').item.json.metadata.phone_number_id }}"
+            },
+            {
+              "id": "m3",
+              "name": "mensaje",
+              "type": "string",
+              "value": "=He recibido una imagen 📷, pero no tengo ningún pedido pendiente de pago en este momento. Si quieres hacer un nuevo pedido, por favor escribe 'Hola'."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7f0f0734-798c-484c-ad7b-fb14b44af9ba",
+      "name": "Set - Mensaje Imagen Inesperada",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1152,
+        704
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v21.0/' + $json.phoneNumberId + '/messages' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "whatsAppApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  messaging_product: 'whatsapp',\n  to: $json.telefono,\n  type: 'text',\n  text: { body: $json.mensaje }\n}) }}",
+        "options": {}
+      },
+      "id": "e909bf29-660c-4da6-a915-306290955012",
+      "name": "HTTP - Mensaje error",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -976,
+        704
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "Ur6ZELwtVtxItVPE",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Set - Datos Cliente').item.json.phoneNumberId }}/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "whatsAppApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\nJSON.stringify({\n  \"messaging_product\": \"whatsapp\",\n  \"recipient_type\": \"individual\",\n  \"to\": $('Set - Datos Cliente').item.json.telefono,\n  \"type\": \"interactive\",\n  \"interactive\": {\n    \"type\": \"button\",\n    \"body\": {\n      \"text\": \"📝 *Resumen de tu pedido:*\\n\\n\" + $json.resumen_pedido + \"\\n\\n💰 *Total a pagar:* S/ \" + $json.total + \"\\n\\n¿Está todo correcto? 👇\"\n    },\n    \"action\": {\n      \"buttons\": [\n        {\n          \"type\": \"reply\",\n          \"reply\": {\n            \"id\": \"BTN_CONFIRMAR_PEDIDO\",\n            \"title\": \"✅ Sí, Confirmar\"\n          }\n        }\n      ]\n    }\n  }\n})\n}}",
+        "options": {}
+      },
+      "id": "955caf7a-d8e0-4d53-af16-7139d3663755",
+      "name": "HTTP - Botón Confirmación",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1600,
+        592
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "Ur6ZELwtVtxItVPE",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT p.*\nFROM pedidos p\nJOIN clientes c ON p.cliente_id = c.id\nWHERE c.telefono = $1\n  AND p.estado <> 'COMPLETO'\nORDER BY p.creado_en DESC\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ $('Set - Datos Botón WhatsApp').item.json.telefono }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        208,
+        800
+      ],
+      "id": "197066cc-8772-48f3-b3a4-e75624aacc92",
+      "name": "DB - Obtener Pedido Activo1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "EuEbLjm0Yx9snHhs",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n    id          AS pago_id,\n    monto,\n    remitente,\n    codigo_operacion,\n    estado\nFROM pagos_recibidos\nWHERE \n    estado = 'PENDIENTE'\n    AND monto = $1\n    AND (\n        -- Coincidimos por código de seguridad (guardado como codigo_operacion)\n        codigo_operacion LIKE '%' || $2 || '%'\n        OR\n        mensaje_original LIKE '%' || $2 || '%'\n    )\nORDER BY fecha_recepcion DESC\nLIMIT 1;\n",
+        "options": {
+          "queryReplacement": "={{ [ \n  parseFloat($json.output.monto || 0), \n  $json.output.codigo_seguridad || '' \n] }}\n"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -1312,
+        912
+      ],
+      "id": "bd633f90-70ab-4b85-a5ea-31fa714562e2",
+      "name": "DB - Buscar Conciliación",
+      "credentials": {
+        "postgres": {
+          "id": "EuEbLjm0Yx9snHhs",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pedido asociado al comprobante (sale del nodo DB - Guardar Comprobante y Finalizar Pedido)\nconst pedidoDb = $('DB - Guardar Comprobante y Finalizar Pedido').first().json || {};\n\n// Datos del voucher leído por IA\nconst ocr = $('AI - OCR').first().json.output || {};\n\n// Datos del pago encontrado en pagos_recibidos (entrada directa de este nodo)\nconst itemsPago = $input.all();\nconst pagoEncontrado = itemsPago.length > 0 ? itemsPago[0].json : null;\n\n// Armamos objeto de salida base\nconst resultado = {\n  aprobado: false,\n  motivo: \"\",\n  pedido_id: pedidoDb.pedido_finalizado_id || null,\n  pago_id: pagoEncontrado ? pagoEncontrado.pago_id : null,\n  monto_pedido: null,\n  monto_voucher: null,\n  monto_webhook: null,\n  diferencia: null\n};\n\n// 1) Validaciones de existencia básica\nif (!resultado.pedido_id) {\n  resultado.motivo = \"SIN_PEDIDO_PENDIENTE_PAGO\";\n  return { json: resultado };\n}\n\nconst totalEsperado = parseFloat(pedidoDb.total);\nresultado.monto_pedido = isNaN(totalEsperado) ? null : totalEsperado;\n\nif (!ocr || typeof ocr !== \"object\") {\n  resultado.motivo = \"OCR_SIN_DATOS\";\n  return { json: resultado };\n}\n\n// 2) Validar que el voucher sea de un pago exitoso\nif (!ocr.es_voucher_pagado) {\n  resultado.motivo = \"VOUCHER_NO_CONFIRMADO\";\n  return { json: resultado };\n}\n\n// 3) Montos desde OCR y Webhook\nconst montoVoucher = parseFloat(ocr.monto || 0);\nresultado.monto_voucher = isNaN(montoVoucher) ? null : montoVoucher;\n\nif (!pagoEncontrado || !pagoEncontrado.pago_id) {\n  resultado.motivo = \"PAGO_NO_ENCONTRADO\";\n  return { json: resultado };\n}\n\nconst montoWebhook = parseFloat(pagoEncontrado.monto);\nresultado.monto_webhook = isNaN(montoWebhook) ? null : montoWebhook;\n\n// 4) Validación numérica (permitimos pequeña tolerancia por temas de redondeo)\nif (\n  resultado.monto_pedido === null ||\n  resultado.monto_voucher === null ||\n  resultado.monto_webhook === null\n) {\n  resultado.motivo = \"MONTOS_INVALIDOS\";\n  return { json: resultado };\n}\n\nconst tol = 0.05; // 5 céntimos\nconst diffPedidoWebhook = Math.abs(resultado.monto_pedido - resultado.monto_webhook);\nconst diffPedidoVoucher = Math.abs(resultado.monto_pedido - resultado.monto_voucher);\n\nresultado.diferencia = resultado.monto_webhook - resultado.monto_pedido;\n\nif (diffPedidoWebhook <= tol && diffPedidoVoucher <= tol) {\n  // Éxito total\n  resultado.aprobado = true;\n  resultado.motivo = \"EXITO\";\n} else {\n  resultado.aprobado = false;\n  resultado.motivo = \"MONTO_INCORRECTO\";\n}\n\nreturn { json: resultado };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1152,
+        912
+      ],
+      "id": "a164e9eb-c4e1-487d-bbdb-d044d63dcafe",
+      "name": "JS - Validación Cruzada"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "5ece8381-75d7-4bb3-9fb0-2576011db9b2",
+              "leftValue": "={{ $json.aprobado }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1296,
+        1152
+      ],
+      "id": "2be905fa-801b-4844-83f4-d39d6b20610b",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1088,
+        1360
+      ],
+      "id": "a85c89fc-9d1b-4786-9427-3aa7a132ce8a",
+      "name": "Set - Pago no validado"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH actualizar_pedido AS (\n    UPDATE pedidos\n    SET \n        estado = 'COMPLETO',\n        actualizado_en = now()\n    WHERE id = $1\n    RETURNING \n        id,\n        cliente_id,\n        resumen_pedido,\n        total,\n        ubicacion\n),\nactualizar_pago AS (\n    UPDATE pagos_recibidos\n    SET \n        estado = 'ASIGNADO',\n        pedido_id = $1,\n        actualizado_en = now()\n    WHERE id = $2\n    RETURNING \n        id    AS pago_id,\n        monto,\n        remitente\n),\ndatos_cliente AS (\n    SELECT \n        c.id,\n        c.nombre,\n        c.telefono\n    FROM clientes c\n    JOIN actualizar_pedido ap ON c.id = ap.cliente_id\n)\nSELECT\n    ap.id          AS pedido_finalizado_id,\n    dc.nombre      AS nombre_cliente,\n    dc.telefono    AS telefono_cliente,\n    ap.resumen_pedido,\n    ap.total,\n    ap.ubicacion,\n    pg.pago_id,\n    pg.monto       AS monto_pagado,\n    pg.remitente\nFROM actualizar_pedido ap\nJOIN datos_cliente dc ON dc.id = ap.cliente_id\nLEFT JOIN actualizar_pago pg ON true;\n",
+        "options": {
+          "queryReplacement": "={{ [ $json.pedido_id, $json.pago_id ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -1088,
+        1136
+      ],
+      "id": "e97710fc-8051-481d-af16-02fb3d33e387",
+      "name": "DB - Validar pedido completo y completar",
+      "credentials": {
+        "postgres": {
+          "id": "EuEbLjm0Yx9snHhs",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "media",
+        "operation": "mediaUrlGet",
+        "mediaGetId": "={{ $('WhatsApp Trigger').item.json.messages[0].image.id }}"
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -1984,
+        896
+      ],
+      "id": "9815e894-7190-4897-a91e-fbebcedfcb2c",
+      "name": "Download media",
+      "webhookId": "e9a42855-0f1f-4c1d-987a-4fe79d4f4ee0",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "Ur6ZELwtVtxItVPE",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.0-flash-lite-001",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.0-flash-lite-001"
+        },
+        "text": "Actúa como un API de OCR estricto para comprobantes de pago 'Yape'. Tu ÚNICA función es extraer datos visuales y devolver un objeto JSON.\n\nINSTRUCCIONES DE EXTRACCIÓN:\n1. monto: Busca el número grande principal. Devuélvelo como NÚMERO (float), sin el símbolo 'S/'. (Ejemplo: 51.00).\n2. codigo_seguridad: ATENCIÓN: Son los 3 dígitos grandes que aparecen en recuadros separados o espaciados (ej: \"7 6 2\"). Únelos y devuélvelo como texto (Ejemplo: \"762\"). SIEMPRE EXTRAE ESTO.\n3. numero_operacion: El número largo al pie del recibo (Ejemplo: \"06486762\").\n\nSi la imagen no es un Yape válido, devuelve un JSON con valores null.\n\nResponde ÚNICAMENTE con el JSON crudo, sin bloques de código markdown (```json) ni texto adicional.",
+        "inputType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1632,
+        992
+      ],
+      "id": "d73dcc75-b22e-4e42-a497-7e176f32e1dc",
+      "name": "Analyze an image",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "yeqbpZlp9wKGsLSg",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "whatsAppApi",
+        "options": {}
+      },
+      "id": "2822cb8c-ca01-4e21-9126-02e6a2a971c8",
+      "name": "HTTP - Download Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1808,
+        896
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "Ur6ZELwtVtxItVPE",
+          "name": "WhatsApp account"
+        },
+        "httpHeaderAuth": {
+          "id": "L3XHwLYJUc8ogGTJ",
+          "name": "Header Auth account"
+        }
+      }
     }
   ],
-  "pinData": {},
+  "pinData": {
+    "WhatsApp Trigger": [
+      {
+        "json": {
+          "messaging_product": "whatsapp",
+          "metadata": {
+            "display_phone_number": "15551483724",
+            "phone_number_id": "874504925746842"
+          },
+          "contacts": [
+            {
+              "profile": {
+                "name": "mark"
+              },
+              "wa_id": "51978349180"
+            }
+          ],
+          "messages": [
+            {
+              "from": "51978349180",
+              "id": "wamid.HBgLNTE5NzgzNDkxODAVAgASGCBBQzA0NjA4QTQ2MDI5MkI4NDA2Q0Q3OUVFMDUwRkFGNgA=",
+              "timestamp": "1763739382",
+              "type": "image",
+              "image": {
+                "mime_type": "image/jpeg",
+                "sha256": "UZFdmg3MQ6DVwDP/n9zrnppv7MV/QEHyeQltIAN3r8I=",
+                "id": "1520582669160565"
+              }
+            }
+          ],
+          "field": "messages"
+        }
+      }
+    ]
+  },
   "connections": {
     "WhatsApp Trigger": {
       "main": [
@@ -2158,7 +2528,7 @@
         ],
         [
           {
-            "node": "DB - Obtener Pedido Activo Ubicación",
+            "node": "DB - Procesar Ubicación",
             "type": "main",
             "index": 0
           }
@@ -2260,6 +2630,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "DB - Obtener Pedido Activo1",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -2318,17 +2695,6 @@
         ]
       ]
     },
-    "DB - Obtener Pedido Activo Ubicación": {
-      "main": [
-        [
-          {
-            "node": "DB - Actualizar Ubicación Pedido",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "DB - Crear Pedido": {
       "main": [
         [
@@ -2344,7 +2710,7 @@
       "main": [
         [
           {
-            "node": "Preparar Contexto",
+            "node": "GH - Obtener Carta1",
             "type": "main",
             "index": 0
           }
@@ -2378,17 +2744,6 @@
         ]
       ]
     },
-    "Obtener Carta": {
-      "ai_tool": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Switch - accion": {
       "main": [
         [
@@ -2407,13 +2762,6 @@
         ],
         [
           {
-            "node": "Set - Mensaje Pedir Ubicación",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
             "node": "Set - Obtener mensaje",
             "type": "main",
             "index": 0
@@ -2426,7 +2774,13 @@
             "index": 0
           }
         ],
-        [],
+        [
+          {
+            "node": "DB - Actualizar Estado a PENDIENTE_UBICACION",
+            "type": "main",
+            "index": 0
+          }
+        ],
         []
       ]
     },
@@ -2434,7 +2788,7 @@
       "main": [
         [
           {
-            "node": "Switch - Tipo Pedido",
+            "node": "HTTP - Botón Confirmación",
             "type": "main",
             "index": 0
           }
@@ -2468,22 +2822,6 @@
             "index": 0
           }
         ]
-      ]
-    },
-    "DB - Actualizar Ubicación Pedido": {
-      "main": [
-        [
-          {
-            "node": "DB - Actualizar Estado a PENDIENTE_PAGO",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Configuración - Global": {
-      "main": [
-        []
       ]
     },
     "Set - Mensaje Bienvenida": {
@@ -2523,7 +2861,7 @@
       "main": [
         [
           {
-            "node": "DB - Actualizar Estado a PENDIENTE_UBICACION",
+            "node": "HTTP - Enviar Ubi msg",
             "type": "main",
             "index": 0
           }
@@ -2578,18 +2916,7 @@
       "main": [
         [
           {
-            "node": "HTTP - Enviar Ubi msg",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "DB - Actualizar Estado a PENDIENTE_PAGO": {
-      "main": [
-        [
-          {
-            "node": "Set - Mensaje Instrucciones de Pago",
+            "node": "Set - Mensaje Pedir Ubicación",
             "type": "main",
             "index": 0
           }
@@ -2600,7 +2927,7 @@
       "main": [
         [
           {
-            "node": "Code - Resumen Staff",
+            "node": "If - Pedido Pagado Encontrado",
             "type": "main",
             "index": 0
           }
@@ -2619,17 +2946,6 @@
         [
           {
             "node": "DB - Obtener Pedido Activo",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Preparar Contexto": {
-      "main": [
-        [
-          {
-            "node": "AI Agent",
             "type": "main",
             "index": 0
           }
@@ -2667,7 +2983,13 @@
             "index": 0
           }
         ],
-        []
+        [
+          {
+            "node": "HTTP - Preguntar Tipo Entrega",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Validar y armar pedido final": {
@@ -2713,13 +3035,210 @@
           }
         ]
       ]
+    },
+    "GH - Obtener Carta1": {
+      "main": [
+        [
+          {
+            "node": "JS - Parsear Carta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JS - Parsear Carta": {
+      "main": [
+        [
+          {
+            "node": "JS - Preparar Contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JS - Preparar Contexto": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Procesar Ubicación": {
+      "main": [
+        [
+          {
+            "node": "If - Pedido Encontrado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - Pedido Encontrado": {
+      "main": [
+        [
+          {
+            "node": "Set - Mensaje Instrucciones de Pago",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set - Mensaje Ubicacion Inesperada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Mensaje Ubicacion Inesperada": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Enviar Pago msg",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - Pedido Pagado Encontrado": {
+      "main": [
+        [
+          {
+            "node": "Download media",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set - Mensaje Imagen Inesperada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Mensaje Imagen Inesperada": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Mensaje error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Obtener Pedido Activo1": {
+      "main": [
+        [
+          {
+            "node": "Switch - Tipo Pedido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Buscar Conciliación": {
+      "main": [
+        [
+          {
+            "node": "JS - Validación Cruzada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JS - Validación Cruzada": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "DB - Validar pedido completo y completar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set - Pago no validado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB - Validar pedido completo y completar": {
+      "main": [
+        [
+          {
+            "node": "Code - Resumen Staff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download media": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Download Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze an image": {
+      "main": [
+        [
+          {
+            "node": "DB - Buscar Conciliación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Download Image": {
+      "main": [
+        [
+          {
+            "node": "Analyze an image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "86bbcafd-04dc-4871-a05a-2d6578f44b26",
+  "versionId": "4bc55b6b-a695-4d53-bc43-d1937ebe09cb",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "5c77fd69a044fc8332661839d745fcc4cdf4ca99c0317eb006f96ebbbb87b133"

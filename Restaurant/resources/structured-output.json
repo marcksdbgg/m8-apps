@@ -3,11 +3,11 @@
   "properties": {
     "respuesta": {
       "type": "string",
-      "description": "Texto en español amigable para el cliente, listo para enviar por WhatsApp."
+      "description": "Texto final para el usuario. Debe ser amable y coherente con el estado actual."
     },
     "accion": {
       "type": "string",
-      "description": "Acción que debe ejecutar el workflow de n8n.",
+      "description": "Determinante para el flujo de n8n. Define el siguiente paso lógico.",
       "enum": [
         "NONE",
         "MOSTRAR_CARTA",
@@ -16,55 +16,56 @@
         "ORDEN_DESCONOCIDA",
         "ESPERAR_UBICACION",
         "ESPERAR_PAGO",
-        "ORDEN_CONFIRMADA"
+        "SOLICITAR_CONFIRMACION"
       ]
     },
     "pedido_parseado": {
       "type": "array",
-      "description": "Lista de líneas de pedido interpretadas a partir del mensaje del cliente.",
+      "description": "Array de objetos. Solo se llena si se identifican productos válidos en el mensaje del usuario.",
       "items": {
         "type": "object",
         "properties": {
           "producto_id": {
             "type": "string",
-            "description": "ID del producto según la carta, por ejemplo 'taco_res_pollo'."
+            "description": "ID EXACTO del producto encontrado en el menú. Debes aplicar la lógica de emparejamiento semántico: si el usuario pide ingredientes combinados (X + Y), selecciona el ID del producto combinado correspondiente."
           },
           "producto_nombre": {
             "type": "string",
-            "description": "Nombre comercial del producto, por ejemplo 'Taco res + pollo'."
+            "description": "Nombre oficial del producto según la carta."
           },
           "categoria_id": {
             "type": "string",
-            "description": "ID de la categoría en la carta, por ejemplo 'el_clasico' o 'los_atrevidos'."
+            "description": "ID de la categoría a la que pertenece el producto."
           },
           "cantidad": {
             "type": "integer",
             "minimum": 1,
-            "description": "Cantidad de unidades solicitadas de este producto/variante."
+            "description": "Número de unidades solicitadas."
           },
           "variant_id": {
             "type": "string",
-            "description": "ID de la variante exacta, por ejemplo 'taco_res_pollo__01_medium'."
+            "description": "ID de la variante seleccionada. Si el usuario no especifica, usa la variante por defecto del menú."
           },
           "variant_label": {
             "type": "string",
-            "description": "Etiqueta de la variante, por ejemplo '01 Medium', '02 Small' o 'Tamaño único'."
+            "description": "Nombre visible de la variante (ej: '01 Medium')."
           },
           "size_code": {
             "type": "string",
-            "description": "Código de tamaño según la carta, por ejemplo '01_medium', '02_small', 'unico'."
+            "description": "Código técnico del tamaño (ej: '01_medium')."
           },
           "precio_unitario": {
             "type": "number",
-            "description": "Precio unitario en la moneda configurada para esa variante."
+            "description": "Precio extraído directamente del menú para esa variante."
           },
           "subtotal": {
             "type": "number",
-            "description": "Precio_unitario * cantidad."
+            "description": "Cálculo matemático: precio_unitario * cantidad."
           }
         },
         "required": [
           "producto_id",
+          "producto_nombre",
           "cantidad",
           "variant_id",
           "size_code",
@@ -75,15 +76,15 @@
     },
     "total": {
       "type": "number",
-      "description": "Total del pedido sumando todos los subtotales."
+      "description": "Suma total monetaria de todos los items del pedido_parseado. Si no hay pedido, es 0."
     },
     "resumen_pedido": {
       "type": "string",
-      "description": "Resumen en texto del pedido, línea por línea, listo para mostrar al cliente o staff."
+      "description": "Bloque de texto formateado (con saltos de línea) describiendo el pedido completo y el total. Listo para ser leído por humanos."
     },
     "errores": {
       "type": "array",
-      "description": "Mensajes de error o advertencia (por ejemplo, productos no encontrados o dudas de interpretación).",
+      "description": "Lista de strings con problemas detectados (ej: 'Producto X no encontrado', 'Falta elegir tamaño'). Vacío si todo está bien.",
       "items": {
         "type": "string"
       }
@@ -93,6 +94,8 @@
     "respuesta",
     "accion",
     "pedido_parseado",
-    "total"
+    "total",
+    "resumen_pedido",
+    "errores"
   ]
 }
