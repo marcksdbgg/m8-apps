@@ -9,13 +9,9 @@
       "type": "string",
       "description": "Determinante para el flujo de n8n. Define el siguiente paso lógico.",
       "enum": [
-        "NONE",
-        "MOSTRAR_CARTA",
-        "INFO_PEDIDO",
-        "INFO_DELIVERY",
+        "MENSAJE_USUARIO",
         "ORDEN_DESCONOCIDA",
         "ESPERAR_UBICACION",
-        "ESPERAR_PAGO",
         "SOLICITAR_CONFIRMACION"
       ]
     },

@@ -1,0 +1,5 @@
+PARA LAS SHEETS:
+Asegúrate de que tu hoja de Google Sheets tenga estas cabeceras en la primera fila para que el robot sepa dónde escribir:
+Fecha, Hora, Mes, Año, ID_Pedido, Cliente, Telefono, Monto_Total, Monto_Pagado, Remitente_Pago, ID_Transaccion, `Detalle_Items`.
+
+
